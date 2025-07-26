@@ -1,13 +1,25 @@
-const express = require('express');
-const cors = require('cors');
-
+const express = require("express");
+const cors = require("cors");
 const app = express();
 
-app.use(cors());
+// Middleware to handle CORS and JSON requests
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.json({ message: 'Backend is running' });
+// Sample route to test the server
+app.get("/test", (req, res) => {
+  res.json({ message: "Backend is running" });
 });
 
-app.listen(5003, () => console.log('Server running on port 5003'));
+//error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("something broke!");
+});
+
+// Start the server
+app.listen(5005, () => console.log("Server running on port 5005"));
