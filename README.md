@@ -1,6 +1,6 @@
 # cathy-portfolio
 
-!Loading simulation] (https://github.com/Cathy-45/cathy-portfolio/blob/d4ac2682f1c2ccbbffbb863c0725dc4e82c86d33/Image%20Rubic%20cube%20.jpg)
+![Project Banner Image](https://github.com/Cathy-45/cathy-portfolio/blob/fbc9832ab0a536b5c6b2cf2a2d73605d2ce54b89/Image%20Rubic%20cube%20.jpg)
 
 Portfolio website for Catherine Sichone, a maiden Software Engineer. Features include a dark-themed UI, consultation form, Stripe payment system, and services showcase.
 
