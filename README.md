@@ -12,7 +12,7 @@ Portfolio website for Catherine Sichone, a maiden Software Engineer. Features in
 ## Setup
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/cathy-portfolio.git
+   git clone https://github.com/your-username/user-portfolio.git
    cd cathy-portfolio featuring consultaiion, payment system and services
 
 ## Set up Frontend
