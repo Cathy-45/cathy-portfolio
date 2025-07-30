@@ -1,13 +1,48 @@
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+
+  // Close hamburger menu on route change
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location]);
+
   return (
-    <nav className="bg-[#1a1a1a] p-4 sticky top-0 z-10">
-      <ul className="flex space-x-6 justify-center text-gray font-poppins">
-        <li><NavLink to="/" className="hover:text-[#52525b] data-[active=true]:text-[#ff6f61]">Home</NavLink></li>
-        <li><NavLink to="/products" className="hover:text-[#52525b] data-[active=true]:text-[#ff6f61]">Products</NavLink></li>
-        <li><NavLink to="/consultation" className="hover:text-[#52525b] data-[active=true]:text-[#ff6f61]">Consultation</NavLink></li>
-        <li><NavLink to="/contact" className="hover:text-[#52525b] data-[active=true]:text-[#ff6f61]">Contact</NavLink></li>
+    <nav className="navbar">
+      <button className="hamburger" onClick={() => setIsOpen(!isOpen)}>
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d={isOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
+          />
+        </svg>
+      </button>
+      <ul className={`nav-list ${isOpen ? 'open' : ''}`}>
+        <li className="nav-item">
+          <NavLink to="/" className="nav-link" data-active={location.pathname === '/'}>
+            Home
+          </NavLink>
+        </li>
+        <li className="nav-item">
+          <NavLink to="/products" className="nav-link" data-active={location.pathname === '/products'}>
+            Products
+          </NavLink>
+        </li>
+        <li className="nav-item">
+          <NavLink to="/consultation" className="nav-link" data-active={location.pathname === '/consultation'}>
+            Consultation
+          </NavLink>
+        </li>
+        <li className="nav-item">
+          <NavLink to="/contact" className="nav-link" data-active={location.pathname.startsWith('/contact')}>
+            Contact
+          </NavLink>
+        </li>
       </ul>
     </nav>
   );

@@ -1,15 +1,34 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import backgroundImage from '../assets/background.jpg'; 
 
 const Home = () => {
   return (
-    <section className="min-h-screen flex flex-col items-center justify-center bg-[#1a1a1a] text-white">
-      <h1 className="text-5xl font-poppins font-bold mb-4 text-[#374151]">
-        Hi, I'm Cathy,  A Maiden Software Engineer
-      </h1>
-      <p className="text-2xl font-roboto mb-8 text-[#9ca3af]">
-        Passionate about building innovative solutions for the digital world.
-      </p>
-      <div className="text-6xl animate-wave">👋</div>
+    <section
+      className="min-h-screen flex flex-col items-center justify-center bg-[#1a1a1a] text-white bg-contain bg-center"
+      style={{
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundBlendMode: 'overlay',
+        backgroundColor: 'rgba(26, 26, 26, 0.96)',
+        opacity: 0.3,
+        backgroundPosition: 'center top',
+      }}
+    >
+      <div className="flex flex-col items-center text-center space-y-4 sm:space-y-6 px-4 sm:px-6">
+       <div className="text-4xl sm:text-6xl animate-wave">👋</div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-poppins font-bold text-[#fb923c]">
+          Hi, I'm Cathy, A Maiden Software Engineer
+        </h1>
+        <p className="text-lg sm:text-xl md:text-2xl font-roboto font-bold text-[#fdba74]">
+          Passionate about building innovative solutions for the digital world.
+        </p>
+        <Link
+          to="/products"
+         className="text-sm sm:text-lg font-poppins text-[#fdba74] hover:underline mt-2 sm:mt-4"
+        >
+          See How I can Help 
+        </Link>
+      </div>
     </section>
   );
 };
