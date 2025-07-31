@@ -38,7 +38,7 @@ const SystemIntegration = () => {
         </Link>
         <Link
           to="/consultation"
-          className="text-lg font-poppins text-white bg-[#fdba74] hover:bg-[#fb923c] px-6 py-2 rounded-lg transition-colors mt-6"
+          className="text-lg font-poppins text-white bg-[#3F3F46] hover:bg-[#fb923c] px-6 py-2 rounded-lg transition-colors mt-6"
         >
           Book A Consultation Now!
         </Link>
