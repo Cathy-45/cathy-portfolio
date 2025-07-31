@@ -22,15 +22,16 @@ const Home = () => {
         <p className="text-lg sm:text-xl md:text-2xl font-roboto font-bold text-[#fdba74]">
           Passionate about building innovative solutions for the digital world.
         </p>
-        <Link
-          to="/products"
-         className="text-sm sm:text-lg font-poppins text-[#fdba74] hover:underline mt-2 sm:mt-4"
-        >
-          See How I can Help 
-        </Link>
-      </div>
+        <button 
+                onClick={() => window.location.href="/products"} 
+                className="bg-[#3f3f46] text-[#fb923c] font-poppins text-sm sm:text-lg py-2 px-4 rounded-lg hover:bg-[#e2e8f0] transition duration-300"
+            >
+                See How I Can Help
+            </button>
+        </div>
     </section>
-  );
+);
+  
 };
 
 export default Home;
