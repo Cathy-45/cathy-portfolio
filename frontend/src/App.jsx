@@ -4,12 +4,16 @@ import Loader from './components/Loader';
 import Home from './components/Home';
 import Navbar from './components/Navbar';
 import Products from './components/Products';
+import FullStackDevelopment from './components/products/FullStackDevelopment';
+import TechnologyConsulting from './components/products/TechnologyConsulting';
+import SystemIntegration from './components/products/SystemIntegration';
+import SaaS from './components/products/SaaS';
 
 const App = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setTimeout(() => setLoading(false), 5000); // Simulate loading
+    setTimeout(() => setLoading(false), 5000); 
   }, []);
 
   return (
@@ -22,6 +26,10 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/products/full-stack-development" element={<FullStackDevelopment />} />
+            <Route path="/products/technology-consulting" element={<TechnologyConsulting />} />
+            <Route path="/products/system-integration" element={<SystemIntegration />} />
+            <Route path="/products/saas" element={<SaaS />} />
             <Route path="/consultation" element={<div>Consultation (TBD)</div>} />
             <Route path="/contact" element={<div>Contact (TBD)</div>} />
           </Routes>

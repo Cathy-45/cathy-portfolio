@@ -3,7 +3,6 @@
 
 @import "tailwindcss";
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,8 +11,9 @@
 body {
   margin: 0;
   background-color: #1a1a1a;
-  color: #c3caea;
+  color: #cc985f;
   font-family: 'Poppins', sans-serif;
+  font-size:x-large
 }
 
 
@@ -31,7 +31,7 @@ body {
 }
 
 .cube-container {
-  perspective: 800px; 
+  perspective: 1000px; 
 }
 
 .cube {
@@ -68,3 +68,108 @@ body {
 }
 
 
+.welcome-letter {
+  font-family: 'Poppins', sans-serif;
+  font-size: 8.5rem; /* Large, elegant text */
+  font-weight: 700;
+  opacity: 0;
+  display: inline-block;
+  animation: confetti-pop 1.5s ease-in-out forwards;
+  transform: translateY(20px);
+  margin: 0 2px; /* Space between letters */
+}
+
+@keyframes confetti-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1.2);
+  }
+  100% {
+    opacity: 0.7;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Navbar styles */
+.navbar {
+  background: #1a1a1a;
+  padding: 1.25rem; /* Matches original p-5 */
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.nav-list {
+  display: flex;
+  justify-content: center;
+  gap: 4rem; /* Matches original space-x-16 */
+  font-family: 'Poppins', sans-serif;
+  color: #9ca3af; /* Replaces text-gray */
+}
+
+.nav-item {
+  list-style: none;
+}
+
+.nav-link {
+  font-size: 1rem;
+  text-decoration: none;
+  color: #9ca3af;
+}
+
+.nav-link:hover {
+  color: #fdba74;
+}
+
+.nav-link[data-active="true"] {
+  color: #ff6f61;
+}
+
+.hamburger {
+  display: none;
+  color: #fdba74;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Mobile (<640px) */
+@media (max-width: 639px) {
+  .nav-list {
+    display: none;
+  }
+
+  .nav-list.open {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .nav-link {
+    font-size: 0.875rem; 
+  }
+
+  .hamburger {
+    display: block;
+    position: absolute;
+    right: 1rem;
+    top: 1.25rem;
+  }
+}
+
+/* Tablet+ (≥640px) */
+@media (min-width: 640px) {
+  .nav-list {
+    display: flex;
+  }
+
+  .hamburger {
+    display: none;
+  }
+}
