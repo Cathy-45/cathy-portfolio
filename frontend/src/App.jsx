@@ -4,6 +4,7 @@ import Loader from './components/Loader';
 import Home from './components/Home';
 import Navbar from './components/Navbar';
 import Products from './components/Products';
+import Contact from './components/Contact';
 import FullStackDevelopment from './components/products/FullStackDevelopment';
 import TechnologyConsulting from './components/products/TechnologyConsulting';
 import SystemIntegration from './components/products/SystemIntegration';
@@ -31,7 +32,7 @@ const App = () => {
             <Route path="/products/system-integration" element={<SystemIntegration />} />
             <Route path="/products/saas" element={<SaaS />} />
             <Route path="/consultation" element={<div>Consultation (TBD)</div>} />
-            <Route path="/contact" element={<div>Contact (TBD)</div>} />
+            <Route path="/contact" element={<Contact />} />
           </Routes>
         </>
       )}
