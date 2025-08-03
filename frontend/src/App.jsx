@@ -10,6 +10,7 @@ import FullStackDevelopment from './components/products/FullStackDevelopment';
 import TechnologyConsulting from './components/products/TechnologyConsulting';
 import SystemIntegration from './components/products/SystemIntegration';
 import SaaS from './components/products/SaaS';
+import Myportfolio from './components/MyPortfolio';
 
 const App = () => {
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,8 @@ const App = () => {
             <Route path="/products/system-integration" element={<SystemIntegration />} />
             <Route path="/products/saas" element={<SaaS />} />
             <Route path="/consultation" element={<Consultation/>} />
-            <Route path="/contact" element={<Contact />} />
+            <Route path="/contact" element={<Contact/>} />
+            <Route path="/myportfolio" element={<Myportfolio/>} />
           </Routes>
         </>
       )}

@@ -21,7 +21,7 @@ const Products = () => {
       id: 3,
       name: 'System Integration',
       description: 'Connect CRMs, ERPs, and APIs for seamless data flows.',
-      bgColor: 'bg-[#1E90FF]', // Blue
+      bgColor: 'bg-[#1E90FF]', 
       path: '/products/system-integration',
     },
     {

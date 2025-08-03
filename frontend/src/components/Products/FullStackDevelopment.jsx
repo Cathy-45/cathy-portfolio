@@ -22,7 +22,7 @@ const FullStackDevelopment = () => {
           <p className="text-base sm:text-lg md:text-xl font-roboto font-light text-[#9ca3af] leading-relaxed mb-4">
             Our Full-Stack Development service delivers end-to-end web
             applications tailored to your business needs. We leverage modern
-            technologies like React for dynamic, responsive frontends and
+            technologies like React/Redux for dynamic, responsive frontends and
             Node.js for scalable, efficient backends, alongside JavaScript,
             HTML, Python, and more. Whether you need an e-commerce platform, a
             business dashboard, or a custom web app, we ensure high performance,
