@@ -5,7 +5,6 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
-  // Close hamburger menu on route change
   useEffect(() => {
     setIsOpen(false);
   }, [location]);
@@ -34,16 +33,15 @@ const Navbar = () => {
           </NavLink>
         </li>
         <li className="nav-item">
+          <NavLink to="/portfolio" className="nav-link" data-active={location.pathname === '/portfolio'}>
+            Portfolio
+          </NavLink>
+        </li>
+        <li className="nav-item">
           <NavLink to="/consultation" className="nav-link" data-active={location.pathname === '/consultation'}>
             Consultation
           </NavLink>
         </li>
-        <li className="nav-item">
-          <NavLink to="/myportfolio" className="nav-link" data-active={location.pathname === '/products'}>
-            MyPortfolio
-          </NavLink>
-        </li>
-
         <li className="nav-item">
           <NavLink to="/contact" className="nav-link" data-active={location.pathname.startsWith('/contact')}>
             Contact
