@@ -1,27 +1,17 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Roboto+Mono&display=swap');
-
-@import "tailwindcss";
-
-@tailwind base;
-@tailwind components;
+@import 'tailwindcss';
 @tailwind utilities;
-
-
 body {
   margin: 0;
   background-color: #1a1a1a;
   color: #cc985f;
   font-family: 'Poppins', sans-serif;
-  font-size:x-large
+  font-size: x-large;
 }
-
-
 .animate-wave {
   display: inline-block;
   animation: wave 1s infinite;
 }
-
 @keyframes wave {
   0% { transform: rotate(0deg); }
   10% { transform: rotate(14deg); }
@@ -32,40 +22,30 @@ body {
   60% { transform: rotate(0deg); }
   100% { transform: rotate(0deg); }
 }
-.animate-wave {
-  display: inline-block;
-  animation: wave 2s infinite;
-}
-
 .cube-container {
-  perspective: 1000px; 
+  perspective: 1000px;
 }
-
 .cube {
   position: relative;
   width: 100%;
   height: 100%;
   transform-style: preserve-3d;
 }
-
 .face {
   position: absolute;
   width: 64px;
   height: 64px;
-  border: 8px solid #000; 
+  border: 8px solid #000;
 }
-
-.front  { transform: translateZ(64px); } 
-.back   { transform: translateZ(-64px) rotateY(180deg); }
-.right  { transform: translateX(64px) rotateY(90deg); }
-.left   { transform: translateX(-64px) rotateY(-90deg); }
-.top    { transform: translateY(-64px) rotateX(90deg); }
+.front { transform: translateZ(64px); }
+.back { transform: translateZ(-64px) rotateY(180deg); }
+.right { transform: translateX(64px) rotateY(90deg); }
+.left { transform: translateX(-64px) rotateY(-90deg); }
+.top { transform: translateY(-64px) rotateX(90deg); }
 .bottom { transform: translateY(64px) rotateX(-90deg); }
-
 .animate-cube-spin {
   animation: cube-spin 2s linear infinite;
 }
-
 @keyframes cube-spin {
   0% { transform: rotateX(0deg) rotateY(0deg); }
   25% { transform: rotateX(90deg) rotateY(90deg); }
@@ -73,19 +53,16 @@ body {
   75% { transform: rotateX(270deg) rotateY(270deg); }
   100% { transform: rotateX(360deg) rotateY(360deg); }
 }
-
-
 .welcome-letter {
   font-family: 'Poppins', sans-serif;
-  font-size: 8.5rem; /* Large, elegant text */
+  font-size: 8.5rem;
   font-weight: 700;
   opacity: 0;
   display: inline-block;
   animation: confetti-pop 1.5s ease-in-out forwards;
   transform: translateY(20px);
-  margin: 0 2px; /* Space between letters */
+  margin: 0 2px;
 }
-
 @keyframes confetti-pop {
   0% {
     opacity: 0;
@@ -100,42 +77,34 @@ body {
     transform: translateY(0) scale(1);
   }
 }
-
-/* Navbar styles */
 .navbar {
   background: #1a1a1a;
-  padding: 1.25rem; /* Matches original p-5 */
+  padding: 1.25rem;
   position: sticky;
   top: 0;
   z-index: 10;
 }
-
 .nav-list {
   display: flex;
   justify-content: center;
-  gap: 4rem; /* Matches original space-x-16 */
+  gap: 4rem;
   font-family: 'Poppins', sans-serif;
-  color: #9ca3af; /* Replaces text-gray */
+  color: #9ca3af;
 }
-
 .nav-item {
   list-style: none;
 }
-
 .nav-link {
   font-size: 1rem;
   text-decoration: none;
   color: #9ca3af;
 }
-
 .nav-link:hover {
   color: #fdba74;
 }
-
 .nav-link[data-active="true"] {
   color: #ff6f61;
 }
-
 .hamburger {
   display: none;
   color: #fdba74;
@@ -143,13 +112,10 @@ body {
   border: none;
   cursor: pointer;
 }
-
-/* Mobile (<640px) */
 @media (max-width: 639px) {
   .nav-list {
     display: none;
   }
-
   .nav-list.open {
     display: flex;
     flex-direction: column;
@@ -157,11 +123,9 @@ body {
     gap: 0.5rem;
     margin-top: 1rem;
   }
-
   .nav-link {
-    font-size: 0.875rem; 
+    font-size: 0.875rem;
   }
-
   .hamburger {
     display: block;
     position: absolute;
@@ -169,15 +133,11 @@ body {
     top: 1.25rem;
   }
 }
-
-/* Tablet+ (≥640px) */
 @media (min-width: 640px) {
   .nav-list {
     display: flex;
   }
-
   .hamburger {
     display: none;
   }
 }
-
