@@ -1,23 +1,38 @@
-import React, { useState } from "react";
-import backgroundImage from "../assets/background.jpg";
+import React, { useState } from 'react';
+import backgroundImage from '../assets/background.jpg';
 
 const Consultation = () => {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
+    name: '',
+    email: '',
+    phone: '',
+    message: '',
   });
+  const [status, setStatus] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    alert("Thank you for your request! I will get back to you soon.");
-    setFormData({ name: "", email: "", phone: "", message: "" });
+    try {
+      const response = await fetch('http://localhost:5000/api/consultations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setStatus('Thank you for your request! I will get back to you soon.');
+        setFormData({ name: '', email: '', phone: '', message: '' });
+      } else {
+        setStatus(data.error || 'Failed to submit request.');
+      }
+    } catch (error) {
+      console.error('Fetch error:', error);
+      setStatus('Server error. Please try again later.');
+    }
   };
 
   return (
