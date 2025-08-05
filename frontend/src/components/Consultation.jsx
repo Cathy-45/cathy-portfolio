@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
-import backgroundImage from '../assets/background.jpg';
+import React, { useState } from "react";
+import backgroundImage from "../assets/background.jpg";
 
 const Consultation = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: '',
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
   });
-  const [status, setStatus] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -16,22 +15,26 @@ const Consultation = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Submitting form data:", formData);
     try {
-      const response = await fetch('http://localhost:5000/api/consultations', {
+      const response = await fetch('http://localhost:5003/api/consultations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
       if (response.ok) {
-        setStatus('Thank you for your request! I will get back to you soon.');
+        alert('Thank you for your request! I will get back to you soon.');
         setFormData({ name: '', email: '', phone: '', message: '' });
       } else {
-        setStatus(data.error || 'Failed to submit request.');
+        console.error('Server error:', data);
+        alert('Failed to submit request: ' + (data.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Fetch error:', error);
-      setStatus('Server error. Please try again later.');
+      alert('Network error: ' + error.message);
     }
   };
 
