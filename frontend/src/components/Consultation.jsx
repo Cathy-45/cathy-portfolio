@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import backgroundImage from '../assets/background.jpg';
-
-
-// Replace with your Stripe Publishable Key
 const stripePromise = loadStripe('pk_test_51Rste9GNCTuQ8b5VvFoiyW33qLI7t7qHoHwcwq4S7vHcu9CgCtJRhq5nGbwbCm6zJwihJWEkzdwrLSlSTXMoudT9009UNkrut9');
 const Consultation = () => {
   const [formData, setFormData] = useState({
@@ -11,22 +8,19 @@ const Consultation = () => {
     email: '',
     phone: '',
     message: '',
-    amount: 50, // Default consultation fee in USD
+    amount: 50,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [status, setStatus] = useState('');
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log('Submitting form data:', formData);
     setIsSubmitting(true);
-
     try {
-      // Submit consultation data
-      const response = await fetch('http://localhost:5003/api/consultations', {
+      const response = await fetch('https://cathy-portfolio-backend.onrender.com/api/consultations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -37,9 +31,9 @@ const Consultation = () => {
       if (!response.ok) {
         throw new Error(data.error || 'Unknown error');
       }
-
-      // Initiate Stripe payment
-      const paymentResponse = await fetch('http://localhost:5003/api/payments', {
+      setStatus('Thank you for your request! I will get back to you soon.');
+      setFormData({ name: '', email: '', phone: '', message: '', amount: formData.amount });
+      const paymentResponse = await fetch('https://cathy-portfolio-backend.onrender.com/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -52,24 +46,21 @@ const Consultation = () => {
       if (!paymentResponse.ok) {
         throw new Error(paymentData.error || 'Payment initiation failed');
       }
-
       const stripe = await stripePromise;
       const { error } = await stripe.redirectToCheckout({
         sessionId: paymentData.id,
       });
-
       if (error) {
         console.error('Stripe error:', error);
-        alert('Payment error: ' + error.message);
+        setStatus('Payment error: ' + error.message);
       }
     } catch (error) {
       console.error('Fetch error:', error);
-      alert('Error: ' + error.message);
+      setStatus('Error: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
   };
-
   return (
     <section
       className="min-h-screen flex flex-col items-center justify-center bg-[#1a1a1a] text-white bg-contain bg-center p-4 sm:p-6 md:p-10"
