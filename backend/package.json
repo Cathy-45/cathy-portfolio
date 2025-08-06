@@ -12,10 +12,6 @@
     "mysql2": "^3.14.3",
     "nodemailer": "^6.10.1",
     "stripe": "^18.4.0"
-  },
-  "description": "",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  }
+  
 }
