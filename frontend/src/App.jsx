@@ -11,6 +11,7 @@ import TechnologyConsulting from './components/products/TechnologyConsulting';
 import SystemIntegration from './components/products/SystemIntegration';
 import SaaS from './components/products/SaaS';
 import Myportfolio from './components/MyPortfolio';
+import Success from './components/Success';
 
 const App = () => {
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,7 @@ const App = () => {
             <Route path="/consultation" element={<Consultation/>} />
             <Route path="/contact" element={<Contact/>} />
             <Route path="/portfolio" element={<Myportfolio/>} />
+            <Route path="/success" element={<Success/>} />
            
           </Routes>
         </>

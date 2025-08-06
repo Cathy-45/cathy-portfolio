@@ -1,14 +1,19 @@
-import React, { useState } from "react";
-import backgroundImage from "../assets/background.jpg";
+import React, { useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import backgroundImage from '../assets/background.jpg';
+
+// Replace with your Stripe Publishable Key
+const stripePromise = loadStripe('pk_live_51Rste9GNCTuQ8b5VadpMQGjMg0OOC9ZyZxPDHkpb8mna0u1zZApDEXyLI2aIDOhp5Z1EsGzMnh66YJt8DJwAMnHN0038ohgNyp');
 
 const Consultation = () => {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
+    name: '',
+    email: '',
+    phone: '',
+    message: '',
+    amount: 50, // Default consultation fee in USD
   });
-  const [status, setStatus] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -16,22 +21,52 @@ const Consultation = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Submitting form data:', formData);
+    setIsSubmitting(true);
+
     try {
-      const response = await fetch("http://localhost:5003/api/consultations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      // Submit consultation data
+      const response = await fetch('http://localhost:5003/api/consultations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
+      console.log('Response status:', response.status);
       const data = await response.json();
-      if (response.ok) {
-        setStatus("Thank you for your request! I will get back to you soon.");
-        setFormData({ name: "", email: "", phone: "", message: "" });
-      } else {
-        setStatus(data.error || "Failed to submit request.");
+      console.log('Response data:', data);
+      if (!response.ok) {
+        throw new Error(data.error || 'Unknown error');
+      }
+
+      // Initiate Stripe payment
+      const paymentResponse = await fetch('http://localhost:5003/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          amount: formData.amount,
+        }),
+      });
+      const paymentData = await paymentResponse.json();
+      if (!paymentResponse.ok) {
+        throw new Error(paymentData.error || 'Payment initiation failed');
+      }
+
+      const stripe = await stripePromise;
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: paymentData.id,
+      });
+
+      if (error) {
+        console.error('Stripe error:', error);
+        alert('Payment error: ' + error.message);
       }
     } catch (error) {
-      console.error("Fetch error:", error);
-      setStatus("Server error. Please try again later.");
+      console.error('Fetch error:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -40,11 +75,11 @@ const Consultation = () => {
       className="min-h-screen flex flex-col items-center justify-center bg-[#1a1a1a] text-white bg-contain bg-center p-4 sm:p-6 md:p-10"
       style={{
         backgroundImage: `url(${backgroundImage})`,
-        backgroundBlendMode: "overlay",
-        backgroundColor: "rgba(26, 26, 26, 0.96)",
+        backgroundBlendMode: 'overlay',
+        backgroundColor: 'rgba(26, 26, 26, 0.96)',
         opacity: 0.3,
-        backgroundPosition: "center top",
-        backgroundSize: "contain",
+        backgroundPosition: 'center top',
+        backgroundSize: 'contain',
       }}
     >
       <div className="text-4xl sm:text-6xl animate-wave mb-4 sm:mb-6">👋</div>
@@ -121,11 +156,30 @@ const Consultation = () => {
             className="w-full p-2 rounded bg-[#1a1a1a] text-white border border-[#fdba74] border-opacity-50 focus:outline-none focus:border-[#fdba74]"
           ></textarea>
         </div>
+        <div className="mb-4">
+          <label
+            htmlFor="amount"
+            className="block text-sm sm:text-base font-roboto text-[#9ca3af] mb-2"
+          >
+            Amount (USD)
+          </label>
+          <input
+            type="number"
+            id="amount"
+            name="amount"
+            value={formData.amount}
+            onChange={handleChange}
+            required
+            min="1"
+            className="w-full p-2 rounded bg-[#1a1a1a] text-white border border-[#fdba74] border-opacity-50 focus:outline-none focus:border-[#fdba74]"
+          />
+        </div>
         <button
           type="submit"
-          className="w-full text-sm sm:text-lg font-poppins text-white bg-[#fdba74] hover:bg-[#fb923c] px-4 sm:px-6 py-2 rounded-lg transition-colors"
+          disabled={isSubmitting}
+          className="w-full text-sm sm:text-lg font-poppins text-white bg-[#fdba74] hover:bg-[#fb923c] px-4 sm:px-6 py-2 rounded-lg transition-colors disabled:opacity-50"
         >
-          Submit Request
+          {isSubmitting ? 'Processing...' : 'Pay and Submit'}
         </button>
       </form>
     </section>
