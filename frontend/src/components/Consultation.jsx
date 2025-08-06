@@ -3,8 +3,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import backgroundImage from '../assets/background.jpg';
 
 // Replace with your Stripe Publishable Key
-const stripePromise = loadStripe('pk_live_51Rste9GNCTuQ8b5VadpMQGjMg0OOC9ZyZxPDHkpb8mna0u1zZApDEXyLI2aIDOhp5Z1EsGzMnh66YJt8DJwAMnHN0038ohgNyp');
-
+const stripePromise = loadStripe('pk_test_51Rste9GNCTuQ8b5VvFoiyW33qLI7t7qHoHwcwq4S7vHcu9CgCtJRhq5nGbwbCm6zJwihJWEkzdwrLSlSTXMoudT9009UNkrut9');
 const Consultation = () => {
   const [formData, setFormData] = useState({
     name: '',
