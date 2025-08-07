@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import backgroundImage from '../assets/background.jpg';
 
+
 // Replace with your Stripe Publishable Key
 const stripePromise = loadStripe('pk_test_51Rste9GNCTuQ8b5VvFoiyW33qLI7t7qHoHwcwq4S7vHcu9CgCtJRhq5nGbwbCm6zJwihJWEkzdwrLSlSTXMoudT9009UNkrut9');
 const Consultation = () => {
