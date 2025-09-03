@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
@@ -35,8 +34,7 @@ app.post('/api/consultations', async (req, res) => {
   }
   let connection;
   try {
-    const connection = await initializeDatabase();
-
+    connection = await initializeDatabase();
     const query =
       'INSERT INTO consultations (name, email, phone, message, created_at) VALUES (?, ?, ?, ?, NOW())';
     const [result] = await connection.execute(query, [name, email, phone, message]);
@@ -62,7 +60,6 @@ app.post('/api/consultations', async (req, res) => {
       message: 'Consultation request submitted successfully',
       data: { id: result.insertId, name, email, phone, message },
     });
-
   } catch (err) {
     console.error('Database error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -70,8 +67,6 @@ app.post('/api/consultations', async (req, res) => {
     if (connection) await connection.end();
   }
 });
-
-
 app.post('/api/payments', async (req, res) => {
   const { name, email, amount } = req.body;
   console.log('Received payment request:', { name, email, amount });
@@ -100,39 +95,24 @@ app.post('/api/payments', async (req, res) => {
       customer_email: email,
       metadata: { name, email, consultation_id: '' },
     });
-
-
-
     console.log('Stripe session created:', { sessionId: session.id, paymentIntent: session.payment_intent });
-
-    
     const selectQuery = 'SELECT id, created_at FROM consultations WHERE email = ? ORDER BY created_at DESC LIMIT 1';
     const [results] = await connection.execute(selectQuery, [email]);
     if (!results || results.length === 0) {
       console.error('No matching consultation found for email:', email);
       return res.status(404).json({ error: 'No matching consultation found' });
     }
-
     const { id } = results[0];
     console.log('Selected consultation:', { id, email });
     const updateQuery =
       'UPDATE consultations SET session_id = ? WHERE id = ?';
     const [updateResult] = await connection.execute(updateQuery, [session.id, id]);
-
-    const { id, created_at } = results[0];
-    console.log('Selected consultation:', { id, created_at, email });
-    const updateQuery =
-      'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE id = ?';
-    const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, session.payment_status, id]);
-
     console.log('Database update result:', updateResult);
     if (updateResult.affectedRows === 0) {
       console.error('No rows updated for id:', id);
       return res.status(500).json({ error: 'Failed to update consultation' });
     }
     res.json({ id: session.id });
-
-
   } catch (error) {
     console.error('Error in /api/payments:', error);
     res.status(500).json({ error: 'Payment initiation failed' });
@@ -140,7 +120,6 @@ app.post('/api/payments', async (req, res) => {
     if (connection) await connection.end();
   }
 });
-
 app.post('/api/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
@@ -173,4 +152,3 @@ app.post('/api/webhook', async (req, res) => {
   res.json({ received: true });
 });
 app.listen(process.env.PORT || 5003, () => console.log(`Server running on port ${process.env.PORT || 5003}`));
-
