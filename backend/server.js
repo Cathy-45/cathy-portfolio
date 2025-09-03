@@ -96,6 +96,7 @@ app.post('/api/payments', async (req, res) => {
       metadata: { name, email, consultation_id: '' },
     });
 
+
     console.log('Stripe session created:', { sessionId: session.id, paymentIntent: session.payment_intent });
     const selectQuery = 'SELECT id, created_at FROM consultations WHERE email = ? ORDER BY created_at DESC LIMIT 1';
     const [results] = await connection.execute(selectQuery, [email]);
@@ -114,42 +115,14 @@ app.post('/api/payments', async (req, res) => {
       return res.status(500).json({ error: 'Failed to update consultation' });
     }
     res.json({ id: session.id });
-
-    // Fetch the latest created_at for the given email
-    const selectQuery = 'SELECT MAX(created_at) AS max_created_at FROM consultations WHERE email = ?';
-    connection.query(selectQuery, [email], (err, results) => {
-      if (err) {
-        console.error('Database select error:', err);
-        return res.status(500).json({ error: 'Database error' });
-      }
-      const maxCreatedAt = results[0]?.max_created_at;
-      if (!maxCreatedAt) {
-        console.error('No matching consultation found');
-        return res.status(404).json({ error: 'No matching consultation found' });
-      }
-      // Update the consultation with payment details
-      const updateQuery =
-        'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE email = ? AND name = ? AND created_at = ?';
-      connection.query(
-        updateQuery,
-        [session.payment_intent, session.payment_status, email, name, maxCreatedAt],
-        (err) => {
-          if (err) {
-            console.error('Database update error:', err);
-            return res.status(500).json({ error: 'Database error' });
-          }
-          res.json({ id: session.id });
-        }
-      );
-    });
-
-  } catch (error) {
+    } catch (error) {
     console.error('Error in /api/payments:', error);
     res.status(500).json({ error: 'Payment initiation failed' });
   } finally {
     if (connection) await connection.end();
   }
 });
+
 app.post('/api/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
