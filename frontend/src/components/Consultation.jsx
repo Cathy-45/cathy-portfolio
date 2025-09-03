@@ -61,7 +61,9 @@ const Consultation = () => {
       setIsSubmitting(false);
     }
   };
-  return (
+    
+    return(
+
     <section
       className="min-h-screen flex flex-col items-center justify-center bg-[#1a1a1a] text-white bg-contain bg-center p-4 sm:p-6 md:p-10"
       style={{
