@@ -97,6 +97,7 @@ app.post('/api/payments', async (req, res) => {
     });
 
 
+
     console.log('Stripe session created:', { sessionId: session.id, paymentIntent: session.payment_intent });
     const selectQuery = 'SELECT id, created_at FROM consultations WHERE email = ? ORDER BY created_at DESC LIMIT 1';
     const [results] = await connection.execute(selectQuery, [email]);
