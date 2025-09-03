@@ -172,9 +172,13 @@ const Consultation = () => {
         >
           {isSubmitting ? 'Processing...' : 'Pay and Submit'}
         </button>
+        {status && (
+          <p className="mt-4 text-center text-sm sm:text-base text-[#fdba74]">
+            {status}
+          </p>
+        )}
       </form>
     </section>
   );
 };
-
 export default Consultation;
