@@ -20,7 +20,9 @@ const Consultation = () => {
     console.log('Submitting form data:', formData);
     setIsSubmitting(true);
     try {
+
       const response = await fetch('https://cathy-portfolio-backend.onrender.com/api/consultations', {
+
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
