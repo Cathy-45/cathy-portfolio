@@ -1,4 +1,6 @@
-# cathy-portfolio
+
+# Cathy Portfolio
+Updated project description with Vite/React frontend, Node.js backend, Stripe payments, and MySQL
 
 ![Project Banner Image](https://github.com/Cathy-45/cathy-portfolio/blob/452a4e5d92f68e9bc16c51175db17323cc46c1d9/Image%20portfolio.jpg)
 ![Project Banner](https://github.com/Cathy-45/cathy-portfolio/blob/b7f6f1baf3e3e600f6d521110fafc6adda610a00/Intro%20page.jpg)
