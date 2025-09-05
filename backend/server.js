@@ -4,17 +4,33 @@ const mysql = require('mysql2/promise');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const url = require('url');
 const app = express();
 app.use(cors());
 app.use('/api/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 async function initializeDatabase() {
-  const connection = await mysql.createConnection({
+  let connectionConfig = {
     host: process.env.MYSQL_HOST || 'localhost',
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || 'cathy_portfolio',
-  });
+    database: process.env.MYSQL_DATABASE || 'railway',
+    port: process.env.MYSQL_PORT || 3306,
+    ssl: process.env.MYSQL_HOST?.includes('railway.app') ? { rejectUnauthorized: true } : undefined,
+  };
+  if (process.env.MYSQL_URL) {
+    const parsedUrl = url.parse(process.env.MYSQL_URL);
+    const [user, password] = parsedUrl.auth ? parsedUrl.auth.split(':') : [null, null];
+    connectionConfig = {
+      host: parsedUrl.hostname,
+      user: user || 'root',
+      password: password || '',
+      database: parsedUrl.pathname ? parsedUrl.pathname.split('/')[1] : 'railway',
+      port: parsedUrl.port || 3306,
+      ssl: parsedUrl.hostname?.includes('railway.app') ? { rejectUnauthorized: true } : undefined,
+    };
+  }
+  const connection = await mysql.createConnection(connectionConfig);
   console.log('Connected to MySQL database.');
   return connection;
 }
@@ -90,10 +106,8 @@ app.post('/api/payments', async (req, res) => {
         quantity: 1,
       }],
       mode: 'payment',
-
       success_url: 'https://cathy-portfolio-frontend.onrender.com/success',
       cancel_url: 'https://cathy-portfolio-frontend.onrender.com/consultation',
-
       customer_email: email,
       metadata: { name, email, consultation_id: '' },
     });
