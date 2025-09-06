@@ -118,8 +118,8 @@ app.post('/api/payments', async (req, res) => {
         quantity: 1,
       }],
       mode: 'payment',
-      success_url: 'https://cathy-portfolio-frontend.onrender.com/success',
-      cancel_url: 'https://cathy-portfolio-frontend.onrender.com/consultation',
+      success_url: 'https://cathy-port12.onrender.com/success',
+      cancel_url: 'https://cathy-port12.onrender.com/consultation',
       customer_email: email,
       metadata: { name, email, consultation_id: '' },
     });
