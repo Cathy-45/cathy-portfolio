@@ -21,7 +21,7 @@ const Consultation = () => {
     setIsSubmitting(true);
     try {
 
-      const response = await fetch('https://cathy-portfolio-backend.onrender.com/api/consultations', {
+      const response = await fetch('https://cathy-port9.onrender.com/api/consultations', {
 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,7 +35,7 @@ const Consultation = () => {
       }
       setStatus('Thank you for your request! I will get back to you soon.');
       setFormData({ name: '', email: '', phone: '', message: '', amount: formData.amount });
-      const paymentResponse = await fetch('https://cathy-portfolio-backend.onrender.com/api/payments', {
+      const paymentResponse = await fetch('https://cathy-port9.onrender.com/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
