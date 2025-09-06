@@ -34,6 +34,18 @@ async function initializeDatabase() {
   console.log('Connected to MySQL database.');
   return connection;
 }
+// Test database connection at startup
+(async () => {
+  let connection;
+  try {
+    connection = await initializeDatabase();
+    console.log('Startup: Successfully connected to MySQL database.');
+  } catch (err) {
+    console.error('Startup: Failed to connect to MySQL database:', err);
+  } finally {
+    if (connection) await connection.end();
+  }
+})();
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
