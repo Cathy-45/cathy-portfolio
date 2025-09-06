@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import backgroundImage from '../assets/background.jpg'; 
-
+import backgroundImage from '../assets/background.jpg';
 const Home = () => {
   return (
     <section
@@ -11,27 +10,25 @@ const Home = () => {
         backgroundBlendMode: 'overlay',
         backgroundColor: 'rgba(26, 26, 26, 0.96)',
         opacity: 0.3,
-        backgroundPosition: 'center top',
+        backgroundPosition: 'contain',
       }}
     >
       <div className="flex flex-col items-center text-center space-y-4 sm:space-y-6 px-4 sm:px-6">
-       <div className="text-4xl sm:text-6xl animate-wave">👋</div>
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-poppins font-bold text-[#fb923c]">
+        <div className="text-4xl sm:text-6xl animate-wave">👋</div>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-poppins font-bold text-[#fdba74]">
           Hi, I'm Cathy, A Maiden Software Engineer
         </h1>
         <p className="text-lg sm:text-xl md:text-2xl font-roboto font-bold text-[#fdba74]">
           Passionate about building innovative solutions for the digital world.
         </p>
-        <button 
-                onClick={() => window.location.href="/products"} 
-                className="bg-[#3f3f46] text-[#fb923c] font-poppins text-sm sm:text-lg py-2 px-4 rounded-lg hover:bg-[#e2e8f0] transition duration-300"
-            >
-                See How I Can Help
-            </button>
-        </div>
+        <Link
+          to="/products"
+          className="bg-[#3f3f46] text-[#fb923c] font-poppins text-sm sm:text-lg py-2 px-4 rounded"
+        >
+          See How I Can Help
+        </Link>
+      </div>
     </section>
-);
-  
+  );
 };
-
 export default Home;
