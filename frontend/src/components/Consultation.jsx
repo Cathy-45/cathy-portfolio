@@ -67,8 +67,7 @@ const Consultation = () => {
     return(
 
     <section
-      className="min-h-screen flex flex-col items-center justify-center bg-[#1a1a1a] text-white bg-contain bg-center p-4 sm:p-6 md:p-10"
-      style={{
+      className="min-h-screen flex flex-col items-center justify-center bg-[#1a1a1a] text-white bg-contain bg-center p-4 sm:p-6 md:p-10" style={{
         backgroundImage: `url(${backgroundImage})`,
         backgroundBlendMode: 'overlay',
         backgroundColor: 'rgba(26, 26, 26, 0.96)',

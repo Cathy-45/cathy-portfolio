@@ -7,11 +7,11 @@ const Loader = () => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-[#1a1a1a] z-50 overflow-hidden">
-      <div className="absolute inset-0 flex items-center justify-center flex-wrap">
+      <div className="absolute inset-0 flex items-center justify-center flex-wrap text-center"> {/* Added text-center for better alignment */}
         {welcomeText.split('').map((letter, index) => (
           <span
             key={index}
-            className="welcome-letter text-xl sm:text-2xl md:text-2.5xl"
+            className="welcome-letter text-[5vw] sm:text-[6vw] md:text-[4rem] lg:text-[5rem]" // Using viewport units for responsive font size
             style={{
               color: colors[index % colors.length],
               animationDelay: `${index * 0.1}s`,
@@ -21,7 +21,7 @@ const Loader = () => {
           </span>
         ))}
       </div>
-      <div className="cube-container w-12 sm:w-16 relative z-10">
+      <div className="cube-container w-10 sm:w-12 md:w-16 lg:w-20 relative z-10">
         <div className="cube animate-cube-spin">
           <div className="face front bg-[#ff6f61]"></div>
           <div className="face back bg-[#4CAF50]"></div>
