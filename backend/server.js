@@ -6,9 +6,11 @@ const cors = require('cors');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const url = require('url');
 const app = express();
+
 app.use(cors());
 app.use('/api/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
+
 async function initializeDatabase() {
   let connectionConfig = {
     host: process.env.MYSQL_HOST || 'localhost',
@@ -16,36 +18,53 @@ async function initializeDatabase() {
     password: process.env.MYSQL_PASSWORD || '',
     database: process.env.MYSQL_DATABASE || 'railway',
     port: process.env.MYSQL_PORT || 3306,
-    ssl: process.env.MYSQL_HOST?.includes('railway.app') ? { rejectUnauthorized: true } : undefined,
+    ssl: process.env.MYSQL_HOST?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
   };
+
   if (process.env.MYSQL_URL) {
     const parsedUrl = url.parse(process.env.MYSQL_URL);
-    const [user, password] = parsedUrl.auth ? parsedUrl.auth.split(':') : [null, null];
+    const [user, password] = parsedUrl.auth ? parsedUrl.auth.split(':') : ['', ''];
     connectionConfig = {
       host: parsedUrl.hostname,
       user: user || 'root',
       password: password || '',
       database: parsedUrl.pathname ? parsedUrl.pathname.split('/')[1] : 'railway',
       port: parsedUrl.port || 3306,
-      ssl: parsedUrl.hostname?.includes('railway.app') ? { rejectUnauthorized: true } : undefined,
+      ssl: parsedUrl.hostname?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
     };
   }
+
   const connection = await mysql.createConnection(connectionConfig);
   console.log('Connected to MySQL database.');
   return connection;
 }
+
 // Test database connection at startup
 (async () => {
   let connection;
   try {
     connection = await initializeDatabase();
     console.log('Startup: Successfully connected to MySQL database.');
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS consultations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        phone VARCHAR(20) NOT NULL,
+        message TEXT,
+        created_at DATETIME NOT NULL,
+        payment_intent_id VARCHAR(255),
+        session_id VARCHAR(255) UNIQUE,
+        payment_status VARCHAR(20)
+      )
+    `);
   } catch (err) {
     console.error('Startup: Failed to connect to MySQL database:', err);
   } finally {
     if (connection) await connection.end();
   }
 })();
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -53,6 +72,7 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+
 app.post('/api/consultations', async (req, res) => {
   const { name, email, phone, message } = req.body;
   console.log('Received data:', req.body);
@@ -63,19 +83,16 @@ app.post('/api/consultations', async (req, res) => {
   let connection;
   try {
     connection = await initializeDatabase();
-    const query =
-      'INSERT INTO consultations (name, email, phone, message, created_at) VALUES (?, ?, ?, ?, NOW())';
+    const query = 'INSERT INTO consultations (name, email, phone, message, created_at) VALUES (?, ?, ?, ?, NOW())';
     const [result] = await connection.execute(query, [name, email, phone, message]);
     console.log('Insert result:', result);
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
       subject: 'Consultation Request Received',
-      text: `Dear ${name},\n\nThank you for your consultation request!\n\nDetails:\nPhone: ${
+      text: `Dear ${name},\n\nThank you for your consultation request!\nDetails:\nName: ${name}\nEmail: ${email}\nPhone: ${
         phone || 'Not provided'
-      }\nMessage: ${
-        message || 'Not provided'
-      }\n\nI will get back to you soon.\n\nBest regards,\nCathy`,
+      }\nMessage: ${message || 'Not provided'}\n\nI will get back to you soon.\n\nBest regards,\nCathy`,
     };
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
@@ -95,28 +112,29 @@ app.post('/api/consultations', async (req, res) => {
     if (connection) await connection.end();
   }
 });
+
 app.post('/api/payments', async (req, res) => {
   const { name, email, amount } = req.body;
   console.log('Received payment request:', { name, email, amount });
   if (!name || !email || !amount) {
     console.log('Validation failed: Missing name, email, or amount');
-    return res
-      .status(400)
-      .json({ error: 'Name, email, and amount are required' });
+    return res.status(400).json({ error: 'Name, email, and amount are required' });
   }
   let connection;
   try {
     connection = await initializeDatabase();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      line_items: [{
-        price_data: {
-          currency: 'usd',
-          product_data: { name: 'Consultation Fee' },
-          unit_amount: Math.round(parseFloat(amount) * 100),
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: { name: 'Consultation Fee' },
+            unit_amount: Math.round(parseFloat(amount) * 100),
+          },
+          quantity: 1,
         },
-        quantity: 1,
-      }],
+      ],
       mode: 'payment',
       success_url: 'https://cathy-port13.onrender.com/success',
       cancel_url: 'https://cathy-port13.onrender.com/consultation',
@@ -132,8 +150,7 @@ app.post('/api/payments', async (req, res) => {
     }
     const { id } = results[0];
     console.log('Selected consultation:', { id, email });
-    const updateQuery =
-      'UPDATE consultations SET session_id = ? WHERE id = ?';
+    const updateQuery = 'UPDATE consultations SET session_id = ? WHERE id = ?';
     const [updateResult] = await connection.execute(updateQuery, [session.id, id]);
     console.log('Database update result:', updateResult);
     if (updateResult.affectedRows === 0) {
@@ -148,25 +165,30 @@ app.post('/api/payments', async (req, res) => {
     if (connection) await connection.end();
   }
 });
-app.post('/api/webhook', async (req, res) => {
+
+app.post('/api/webhook', (req, res) => {
   const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.NODE_ENV === 'development' 
+    ? process.env.STRIPE_WEBHOOK_SECRET_LOCAL 
+    : process.env.STRIPE_WEBHOOK_SECRET;
+
   let event;
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const { email } = session.metadata;
-    console.log('Webhook received: checkout.session.completed', { sessionId: session.id, paymentIntent: session.payment_intent });
+    console.log('Webhook received: checkout.session.completed', { email, sessionId: session.id });
     let connection;
     try {
-      connection = await initializeDatabase();
-      const updateQuery =
-        'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
-      const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
+      connection = initializeDatabase();
+      const updateQuery = 'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
+      const [updateResult] = connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
       console.log('Webhook database update result:', updateResult);
       if (updateResult.affectedRows === 0) {
         console.error('No rows updated for session_id:', session.id);
@@ -174,9 +196,10 @@ app.post('/api/webhook', async (req, res) => {
     } catch (err) {
       console.error('Webhook database error:', err);
     } finally {
-      if (connection) await connection.end();
+      if (connection) connection.end();
     }
   }
   res.json({ received: true });
 });
+
 app.listen(process.env.PORT || 5003, () => console.log(`Server running on port ${process.env.PORT || 5003}`));
