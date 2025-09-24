@@ -165,8 +165,7 @@ app.post('/api/payments', async (req, res) => {
     if (connection) await connection.end();
   }
 });
-
-app.post('/api/webhook', (req, res) => {
+app.post('/api/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.NODE_ENV === 'development' 
     ? process.env.STRIPE_WEBHOOK_SECRET_LOCAL 
@@ -186,9 +185,9 @@ app.post('/api/webhook', (req, res) => {
     console.log('Webhook received: checkout.session.completed', { email, sessionId: session.id });
     let connection;
     try {
-      connection = initializeDatabase();
+      connection = await initializeDatabase(); // Await the connection
       const updateQuery = 'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
-      const [updateResult] = connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
+      const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
       console.log('Webhook database update result:', updateResult);
       if (updateResult.affectedRows === 0) {
         console.error('No rows updated for session_id:', session.id);
@@ -196,10 +195,9 @@ app.post('/api/webhook', (req, res) => {
     } catch (err) {
       console.error('Webhook database error:', err);
     } finally {
-      if (connection) connection.end();
+      if (connection) await connection.end();
     }
   }
   res.json({ received: true });
 });
-
 app.listen(process.env.PORT || 5003, () => console.log(`Server running on port ${process.env.PORT || 5003}`));
