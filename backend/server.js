@@ -7,8 +7,13 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const url = require('url');
 const app = express();
 
+// Use cors for all routes
 app.use(cors());
+
+// Webhook route must use raw body before any JSON parsing
 app.use('/api/webhook', express.raw({ type: 'application/json' }));
+
+// JSON parsing for other routes
 app.use(express.json());
 
 async function initializeDatabase() {
@@ -94,19 +99,14 @@ app.post('/api/consultations', async (req, res) => {
         phone || 'Not provided'
       }\nMessage: ${message || 'Not provided'}\n\nI will get back to you soon.\n\nBest regards,\nCathy`,
     };
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Email error:', error);
-      } else {
-        console.log('Email sent:', info.response);
-      }
-    });
+    await transporter.sendMail(mailOptions); // Use async/await
+    console.log('Email sent successfully');
     res.status(201).json({
       message: 'Consultation request submitted successfully',
       data: { id: result.insertId, name, email, phone, message },
     });
   } catch (err) {
-    console.error('Database error:', err);
+    console.error('Database or email error:', err);
     res.status(500).json({ error: 'Server error' });
   } finally {
     if (connection) await connection.end();
@@ -165,11 +165,10 @@ app.post('/api/payments', async (req, res) => {
     if (connection) await connection.end();
   }
 });
-app.post('/api/webhook', async (req, res) => {
+
+app.post('/api/webhook', (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const endpointSecret = process.env.NODE_ENV === 'development' 
-    ? process.env.STRIPE_WEBHOOK_SECRET_LOCAL 
-    : process.env.STRIPE_WEBHOOK_SECRET;
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   let event;
   try {
@@ -181,23 +180,26 @@ app.post('/api/webhook', async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const { email } = session.metadata;
+    const { email } = session.metadata || {};
     console.log('Webhook received: checkout.session.completed', { email, sessionId: session.id });
-    let connection;
-    try {
-      connection = await initializeDatabase(); // Await the connection
-      const updateQuery = 'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
-      const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
-      console.log('Webhook database update result:', updateResult);
-      if (updateResult.affectedRows === 0) {
-        console.error('No rows updated for session_id:', session.id);
+    (async () => {
+      let connection;
+      try {
+        connection = await initializeDatabase();
+        const updateQuery = 'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
+        const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
+        console.log('Webhook database update result:', updateResult);
+        if (updateResult.affectedRows === 0) {
+          console.error('No rows updated for session_id:', session.id);
+        }
+      } catch (err) {
+        console.error('Webhook database error:', err);
+      } finally {
+        if (connection) await connection.end();
       }
-    } catch (err) {
-      console.error('Webhook database error:', err);
-    } finally {
-      if (connection) await connection.end();
-    }
+    })();
   }
   res.json({ received: true });
 });
+
 app.listen(process.env.PORT || 5003, () => console.log(`Server running on port ${process.env.PORT || 5003}`));
