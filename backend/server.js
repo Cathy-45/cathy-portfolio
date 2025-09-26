@@ -10,12 +10,12 @@ const app = express();
 // Use cors for all routes
 app.use(cors());
 
-// Webhook route must use raw body and be isolated from JSON parsing
+// Webhook route must use raw body and be isolated
 app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
   let event;
+
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
   } catch (err) {
@@ -25,16 +25,25 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    console.log('Webhook received: checkout.session.completed', { sessionId: session.id });
+    console.log('Webhook received: checkout.session.completed', { sessionId: session.id, session });
+
     (async () => {
       let connection;
       try {
         connection = await initializeDatabase();
-        const updateQuery = 'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
-        const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
-        console.log('Webhook database update result:', updateResult);
-        if (updateResult.affectedRows === 0) {
-          console.error('No rows updated for session_id:', session.id);
+        const [rows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
+        console.log('Matching consultations:', rows);
+
+        if (rows.length === 0) {
+          console.error('No consultation found for session_id:', session.id);
+          // Optionally create a new record if needed, or skip
+        } else {
+          const updateQuery = 'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
+          const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
+          console.log('Webhook database update result:', updateResult);
+          if (updateResult.affectedRows === 0) {
+            console.error('No rows updated for session_id:', session.id);
+          }
         }
       } catch (err) {
         console.error('Webhook database error:', err);
@@ -193,7 +202,7 @@ app.post('/api/payments', async (req, res) => {
     res.json({ id: session.id });
   } catch (error) {
     console.error('Error in /api/payments:', error);
-    res.status(500).json({ error: 'Payment initiation failed' });
+    res.status(500).json({ error: 'Payment initiation failed', details: error.message });
   } finally {
     if (connection) await connection.end();
   }
