@@ -4,3 +4,5 @@ export default {
     autoprefixer: {},
   },
 };
+
+// Note: Ensure that the Tailwind CSS plugin is correctly referenced in vite.config.js

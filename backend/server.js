@@ -25,7 +25,7 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    console.log('Webhook received: checkout.session.completed', { sessionId: session.id, session });
+    console.log('Webhook received: checkout.session.completed', { sessionId: session.id, fullSession: session });
 
     (async () => {
       let connection;
@@ -36,7 +36,12 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
 
         if (rows.length === 0) {
           console.error('No consultation found for session_id:', session.id);
-          // Optionally create a new record if needed, or skip
+          // Fix: Include required fields with defaults
+          const [insertResult] = await connection.execute(
+            'INSERT INTO consultations (name, email, session_id, created_at) VALUES (?, ?, ?, NOW())',
+            ['Test User', session.customer_email || 'test@stripe.com', session.id]
+          );
+          console.log('Created fallback consultation:', insertResult);
         } else {
           const updateQuery = 'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
           const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
@@ -66,6 +71,7 @@ async function initializeDatabase() {
     database: process.env.MYSQL_DATABASE || 'railway',
     port: process.env.MYSQL_PORT || 3306,
     ssl: process.env.MYSQL_HOST?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
+    connectTimeout: 10000, // Valid for createConnection
   };
 
   if (process.env.MYSQL_URL) {
@@ -78,6 +84,7 @@ async function initializeDatabase() {
       database: parsedUrl.pathname ? parsedUrl.pathname.split('/')[1] : 'railway',
       port: parsedUrl.port || 3306,
       ssl: parsedUrl.hostname?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
+      connectTimeout: 10000, // Valid for createConnection
     };
   }
 
@@ -89,6 +96,8 @@ async function initializeDatabase() {
 // Test database connection at startup
 (async () => {
   let connection;
+  let retries =3;
+  while(retries > 0){
   try {
     connection = await initializeDatabase();
     console.log('Startup: Successfully connected to MySQL database.');
@@ -105,10 +114,18 @@ async function initializeDatabase() {
         payment_status VARCHAR(20)
       )
     `);
+break;
   } catch (err) {
-    console.error('Startup: Failed to connect to MySQL database:', err);
-  } finally {
-    if (connection) await connection.end();
+console.error(`Startup: Failed to connect to MySQL database (attempt ${4 - retries}):`, err);
+      retries--;
+      if (retries === 0) {
+        console.error('Startup: All connection attempts failed. Exiting.');
+        process.exit(1);
+      }
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds before retry
+    } finally {
+      if (connection) await connection.end();
+    }
   }
 })();
 
@@ -199,7 +216,7 @@ app.post('/api/payments', async (req, res) => {
       console.error('No rows updated for id:', id);
       return res.status(500).json({ error: 'Failed to update consultation' });
     }
-    res.json({ id: session.id });
+    res.json({ id: session.id, url: session.url});
   } catch (error) {
     console.error('Error in /api/payments:', error);
     res.status(500).json({ error: 'Payment initiation failed', details: error.message });
