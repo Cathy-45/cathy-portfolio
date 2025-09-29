@@ -18,7 +18,7 @@ const App = () => {
     setTimeout(() => setLoading(false), 5000);
   }, []);
   return (
-    <Router>
+    <>
       {loading ? (
         <Loader />
       ) : (
@@ -38,7 +38,7 @@ const App = () => {
           </Routes>
         </>
       )}
-    </Router>
+    </>
   );
 };
 export default App;
