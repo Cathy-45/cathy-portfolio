@@ -202,27 +202,58 @@ app.post('/api/consultations', async (req, res) => {
   } finally {
     if (connection) connection.release();
   }
-});
-
+})
 app.post('/api/payments', async (req, res) => {
-  const { name, email, amount } = req.body;
+  const { name, email, amount } = req.body; // 'amount' is the US amount; we'll adjust based on country
   console.log('Received payment request:', { name, email, amount });
+
   if (!name || !email || !amount) {
     console.log('Validation failed: Missing name, email, or amount');
     return res.status(400).json({ error: 'Name, email, and amount are required' });
   }
+
   let connection;
   try {
     const pool = await initializeDatabase();
     connection = await pool.getConnection();
+
+    // Get client IP
+    let clientIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    if (clientIP.includes(',')) clientIP = clientIP.split(',')[0].trim(); // Handle proxies
+
+    console.log('Client IP:', clientIP);
+
+    // Fetch country code
+    let countryCode = 'US'; // Default to US
+    try {
+      const axios = require('axios');
+      const response = await axios.get(`https://ipapi.co/${clientIP}/country/`, { timeout: 5000 });
+      countryCode = response.data.toUpperCase();
+      console.log('Detected country code:', countryCode);
+    } catch (geoErr) {
+      console.warn('Geolocation failed:', geoErr.message, '- defaulting to US pricing');
+    }
+
+    // Pricing logic
+    let finalAmount = parseFloat(amount); // Default US amount
+    let currency = 'usd';
+    let equivalentAmount = null;
+    if (countryCode === 'ZM') {
+      finalAmount = 35.00; // Zambian pricing
+      equivalentAmount = 965; // ZMW equivalent (1 USD ≈ 27.5 ZMW as of Sep 30, 2025)
+      console.log('Applying Zambian pricing: $35 USD (965 ZMW equivalent)');
+    } else {
+      console.log('Applying US pricing: $100 USD');
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: currency,
             product_data: { name: 'Consultation Fee' },
-            unit_amount: Math.round(parseFloat(amount) * 100),
+            unit_amount: Math.round(finalAmount * 100),
           },
           quantity: 1,
         },
@@ -231,9 +262,20 @@ app.post('/api/payments', async (req, res) => {
       success_url: 'https://frontend-df5v.onrender.com/success',
       cancel_url: 'https://frontend-df5v.onrender.com/consultation',
       customer_email: email,
-      metadata: { name, email, consultation_id: '' },
+      metadata: { 
+        name, 
+        email, 
+        consultation_id: '', 
+        country_code: countryCode,
+        original_amount: amount,
+        final_amount: finalAmount,
+        equivalent_amount: equivalentAmount
+      },
     });
+
     console.log('Stripe session created:', { sessionId: session.id, paymentIntent: session.payment_intent });
+
+    // Select recent consultation
     const selectQuery = 'SELECT id FROM consultations WHERE email = ? ORDER BY created_at DESC LIMIT 1';
     const [results] = await connection.execute(selectQuery, [email]);
     if (!results || results.length === 0) {
@@ -242,6 +284,8 @@ app.post('/api/payments', async (req, res) => {
     }
     const { id } = results[0];
     console.log('Selected consultation:', { id, email });
+
+    // Update session_id
     const updateQuery = 'UPDATE consultations SET session_id = ? WHERE id = ?';
     const [updateResult] = await connection.execute(updateQuery, [session.id, id]);
     console.log('Database update result:', updateResult);
@@ -249,6 +293,7 @@ app.post('/api/payments', async (req, res) => {
       console.error('No rows updated for id:', id);
       return res.status(500).json({ error: 'Failed to update consultation' });
     }
+
     res.json({ id: session.id, url: session.url });
   } catch (error) {
     console.error('Error in /api/payments:', error);
