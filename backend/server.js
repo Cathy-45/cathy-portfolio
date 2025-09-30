@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 
 // Webhook route must use raw body and be isolated
-app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
@@ -24,33 +24,32 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     console.log('Webhook received: checkout.session.completed', { sessionId: session.id, fullSession: session });
-    (async () => {
-      let connection;
-      try {
-        connection = await initializeDatabase().getConnection();
-        const [rows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
-        console.log('Matching consultations:', rows);
-        if (rows.length === 0) {
-          console.error('No consultation found for session_id:', session.id);
-          const [insertResult] = await connection.execute(
-            'INSERT INTO consultations (name, email, session_id, created_at) VALUES (?, ?, ?, NOW())',
-            ['Test User', session.customer_email || 'test@stripe.com', session.id]
-          );
-          console.log('Created fallback consultation:', insertResult);
-        } else {
-          const updateQuery = 'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
-          const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
-          console.log('Webhook database update result:', updateResult);
-          if (updateResult.affectedRows === 0) {
-            console.error('No rows updated for session_id:', session.id);
-          }
+    const pool = await initializeDatabase();
+    let connection;
+    try {
+      connection = await pool.getConnection();
+      const [rows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
+      console.log('Matching consultations:', rows);
+      if (rows.length === 0) {
+        console.error('No consultation found for session_id:', session.id);
+        const [insertResult] = await connection.execute(
+          'INSERT INTO consultations (name, email, session_id, created_at) VALUES (?, ?, ?, NOW())',
+          ['Test User', session.customer_email || 'test@stripe.com', session.id]
+        );
+        console.log('Created fallback consultation:', insertResult);
+      } else {
+        const updateQuery = 'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
+        const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
+        console.log('Webhook database update result:', updateResult);
+        if (updateResult.affectedRows === 0) {
+          console.error('No rows updated for session_id:', session.id);
         }
-      } catch (err) {
-        console.error('Webhook database error:', err);
-      } finally {
-        if (connection) connection.release();
       }
-    })();
+    } catch (err) {
+      console.error('Webhook database error:', err);
+    } finally {
+      if (connection) connection.release();
+    }
   }
   res.json({ received: true });
 });
@@ -69,7 +68,7 @@ async function initializeDatabase() {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    connectTimeout: 30000, // 30 seconds
+    connectTimeout: 30000,
   };
 
   if (process.env.MYSQL_URL) {
@@ -121,7 +120,7 @@ async function initializeDatabase() {
         console.error('Startup: All connection attempts failed. Exiting.');
         process.exit(1);
       }
-      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+      await new Promise(resolve => setTimeout(resolve, 10000));
     }
   }
   return pool;
