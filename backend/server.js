@@ -56,6 +56,7 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
 app.use(express.json());
 
 async function initializeDatabase() {
+  console.log('Initializing database with environment:', process.env);
   let connectionConfig = {
     host: process.env.MYSQL_HOST || 'centerbeam.proxy.rlwy.net',
     user: process.env.MYSQL_USER || 'root',
@@ -66,7 +67,7 @@ async function initializeDatabase() {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    connectTimeout: 60000, // Increased to 60 seconds
+    connectTimeout: 60000,
   };
 
   if (process.env.MYSQL_URL) {
@@ -87,7 +88,7 @@ async function initializeDatabase() {
   }
 
   let pool;
-  let retries = 10; // Increased to 10 retries
+  let retries = 10;
   while (retries > 0) {
     try {
       pool = await mysql.createPool(connectionConfig);
@@ -119,7 +120,7 @@ async function initializeDatabase() {
         console.error('Startup: All connection attempts failed. Exiting.');
         process.exit(1);
       }
-      await new Promise(resolve => setTimeout(resolve, 15000)); // Increased to 15 seconds
+      await new Promise(resolve => setTimeout(resolve, 15000));
     }
   }
   return pool;
