@@ -62,12 +62,12 @@ async function initializeDatabase() {
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || 'qMDhdbiwMxqvqkgycKcpvVAeXxpRzfDR',
     database: process.env.MYSQL_DATABASE || 'railway',
-    port: process.env.MYSQL_PORT || 32327,
+    port: process.env.MYSQL_PORT ? parseInt(process.env.MYSQL_PORT) : 32327,
     ssl: process.env.MYSQL_HOST?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    connectTimeout: 120000, // Increased to 120 seconds
+    connectTimeout: 180000, // Increased to 180 seconds
   };
 
   if (process.env.MYSQL_URL) {
@@ -84,12 +84,12 @@ async function initializeDatabase() {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
-      connectTimeout: 120000,
+      connectTimeout: 180000,
     };
   }
 
   let pool;
-  let retries = 15; // Increased to 15 retries
+  let retries = 20; // Increased to 20 retries
   while (retries > 0) {
     try {
       pool = await mysql.createPool(connectionConfig);
@@ -110,18 +110,21 @@ async function initializeDatabase() {
           )
         `);
         console.log('Connected to MySQL database with pool.');
+      } catch (queryErr) {
+        console.error('Query execution error:', queryErr.message, queryErr.stack);
+        throw queryErr; // Re-throw to trigger retry
       } finally {
         connection.release();
       }
       break;
     } catch (err) {
-      console.error(`Startup: Failed to connect to MySQL database (attempt ${16 - retries}):`, err.message, err.stack);
+      console.error(`Startup: Failed to connect to MySQL database (attempt ${21 - retries}):`, err.message, err.stack);
       retries--;
       if (retries === 0) {
         console.error('Startup: All connection attempts failed. Exiting.');
         process.exit(1);
       }
-      await new Promise(resolve => setTimeout(resolve, 20000)); // Increased to 20 seconds
+      await new Promise(resolve => setTimeout(resolve, 30000)); // Increased to 30 seconds
     }
   }
   return pool;
