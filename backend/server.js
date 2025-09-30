@@ -86,7 +86,7 @@ async function initializeDatabase() {
       user: user || 'root',
       password: password || 'qMDhdbiwMxqvqkgycKcpvVAeXxpRzfDR',
       database: parsedUrl.pathname ? parsedUrl.pathname.split('/')[1] || 'railway' : 'railway',
-      port: parsedUrl.port ? parseInt(parsedUrl.port) : 32327,
+      port: parsedUrl.port ? parseInt(parsedUrl.port) : 33327,
       ssl: parsedUrl.hostname?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
       waitForConnections: true,
       connectionLimit: 10,
@@ -240,4 +240,8 @@ app.post('/api/payments', async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 5003, () => console.log(`Server running on port ${process.env.PORT || 5003}`));
+// ... (previous code remains the same until app.listen)
+app.listen(process.env.PORT || 5003, () => {
+  const usedPort = process.env.PORT || 5003;
+  console.log(`Server running on port ${usedPort} with environment port: ${process.env.PORT}`);
+});
