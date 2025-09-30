@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
@@ -15,7 +14,6 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Use cors for all routes
 app.use(cors());
-
 
 // Webhook route
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -60,10 +58,12 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
   }
   res.json({ received: true });
 });
+
 // JSON parsing for other routes
 app.use(express.json());
+
 async function initializeDatabase() {
-  console.log('Initializing database with environment:', process.env);
+  console.log('Initializing database with environment at:', new Date().toISOString());
   let connectionConfig = {
     host: process.env.MYSQL_HOST || 'centerbeam.proxy.rlwy.net',
     user: process.env.MYSQL_USER || 'root',
@@ -78,7 +78,7 @@ async function initializeDatabase() {
   };
 
   if (process.env.MYSQL_URL) {
-    console.log('Using MYSQL_URL:', process.env.MYSQL_URL);
+    console.log('Using MYSQL_URL at:', new Date().toISOString(), process.env.MYSQL_URL);
     const parsedUrl = url.parse(process.env.MYSQL_URL);
     const [user, password] = parsedUrl.auth ? parsedUrl.auth.split(':') : ['', ''];
     connectionConfig = {
@@ -86,7 +86,7 @@ async function initializeDatabase() {
       user: user || 'root',
       password: password || 'qMDhdbiwMxqvqkgycKcpvVAeXxpRzfDR',
       database: parsedUrl.pathname ? parsedUrl.pathname.split('/')[1] || 'railway' : 'railway',
-      port: parsedUrl.port ? parseInt(parsedUrl.port) : 33327,
+      port: parsedUrl.port ? parseInt(parsedUrl.port) : 32327,
       ssl: parsedUrl.hostname?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
       waitForConnections: true,
       connectionLimit: 10,
@@ -97,10 +97,11 @@ async function initializeDatabase() {
 
   let pool;
   let retries = 20;
+  const startTime = Date.now();
   while (retries > 0) {
     try {
       pool = await mysql.createPool(connectionConfig);
-      console.log('Attempting MySQL connection with config:', connectionConfig);
+      console.log('Attempting MySQL connection with config at:', new Date().toISOString(), connectionConfig);
       const connection = await pool.getConnection();
       try {
         await connection.query(`
@@ -116,19 +117,20 @@ async function initializeDatabase() {
             payment_status VARCHAR(20)
           )
         `);
-        console.log('Connected to MySQL database with pool.');
+        console.log('Connected to MySQL database with pool at:', new Date().toISOString());
       } catch (queryErr) {
-        console.error('Query execution error:', queryErr.message, queryErr.stack);
+        console.error('Query execution error at:', new Date().toISOString(), queryErr.message, queryErr.stack);
         throw queryErr;
       } finally {
         connection.release();
       }
       break;
     } catch (err) {
-      console.error(`Startup: Failed to connect to MySQL database (attempt ${21 - retries}):`, err.message, err.stack);
+      const elapsed = (Date.now() - startTime) / 1000;
+      console.error(`Startup: Failed to connect to MySQL database (attempt ${21 - retries}) after ${elapsed}s:`, err.message, err.stack);
       retries--;
       if (retries === 0) {
-        console.error('Startup: All connection attempts failed. Exiting.');
+        console.error('Startup: All connection attempts failed after', elapsed, 'seconds. Exiting.');
         process.exit(1);
       }
       await new Promise(resolve => setTimeout(resolve, 30000));
@@ -138,10 +140,26 @@ async function initializeDatabase() {
     console.error('Pool initialization failed after all retries. Check environment and network.');
     process.exit(1);
   } else {
-    console.log('Pool initialized successfully, proceeding with startup.');
+    console.log('Pool initialized successfully at:', new Date().toISOString());
   }
   return pool;
 }
+
+// Test database connection at startup
+(async () => {
+  let connection;
+  try {
+    const pool = await initializeDatabase();
+    connection = await pool.getConnection();
+    console.log('Startup: Successfully connected to MySQL database with pool at:', new Date().toISOString());
+    await connection.query('SELECT 1'); // Simple test query
+  } catch (err) {
+    console.error('Startup: Failed to connect to MySQL database:', err.message, err.stack);
+  } finally {
+    if (connection) connection.release();
+  }
+})();
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -240,7 +258,6 @@ app.post('/api/payments', async (req, res) => {
   }
 });
 
-// ... (previous code remains the same until app.listen)
 app.listen(process.env.PORT || 5003, () => {
   const usedPort = process.env.PORT || 5003;
   console.log(`Server running on port ${usedPort} with environment port: ${process.env.PORT}`);
