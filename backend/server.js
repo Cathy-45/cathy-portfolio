@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
@@ -6,6 +7,11 @@ const cors = require('cors');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const url = require('url');
 const app = express();
+
+// Global uncaught exception handler
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 // Use cors for all routes
 app.use(cors());
@@ -67,7 +73,7 @@ async function initializeDatabase() {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    connectTimeout: 180000, // Increased to 180 seconds
+    connectTimeout: 180000,
   };
 
   if (process.env.MYSQL_URL) {
@@ -89,7 +95,7 @@ async function initializeDatabase() {
   }
 
   let pool;
-  let retries = 20; // Increased to 20 retries
+  let retries = 20;
   while (retries > 0) {
     try {
       pool = await mysql.createPool(connectionConfig);
@@ -112,7 +118,7 @@ async function initializeDatabase() {
         console.log('Connected to MySQL database with pool.');
       } catch (queryErr) {
         console.error('Query execution error:', queryErr.message, queryErr.stack);
-        throw queryErr; // Re-throw to trigger retry
+        throw queryErr;
       } finally {
         connection.release();
       }
@@ -124,8 +130,12 @@ async function initializeDatabase() {
         console.error('Startup: All connection attempts failed. Exiting.');
         process.exit(1);
       }
-      await new Promise(resolve => setTimeout(resolve, 30000)); // Increased to 30 seconds
+      await new Promise(resolve => setTimeout(resolve, 30000));
     }
+  }
+  if (!pool) {
+    console.error('Pool initialization failed after all retries.');
+    process.exit(1);
   }
   return pool;
 }
