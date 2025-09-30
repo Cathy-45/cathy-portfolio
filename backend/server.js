@@ -10,7 +10,7 @@ const app = express();
 // Use cors for all routes
 app.use(cors());
 
-// Webhook route must use raw body and be isolated
+// Webhook route
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -23,7 +23,7 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
   }
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    console.log('Webhook received: checkout.session.completed', { sessionId: session.id, fullSession: session });
+    console.log('Webhook received: checkout.session.completed', { sessionId: session.id });
     const pool = await initializeDatabase();
     let connection;
     try {
@@ -31,19 +31,17 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
       const [rows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
       console.log('Matching consultations:', rows);
       if (rows.length === 0) {
-        console.error('No consultation found for session_id:', session.id);
         const [insertResult] = await connection.execute(
           'INSERT INTO consultations (name, email, session_id, created_at) VALUES (?, ?, ?, NOW())',
           ['Test User', session.customer_email || 'test@stripe.com', session.id]
         );
         console.log('Created fallback consultation:', insertResult);
       } else {
-        const updateQuery = 'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?';
-        const [updateResult] = await connection.execute(updateQuery, [session.payment_intent, 'paid', session.id]);
+        const [updateResult] = await connection.execute(
+          'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?',
+          [session.payment_intent, 'paid', session.id]
+        );
         console.log('Webhook database update result:', updateResult);
-        if (updateResult.affectedRows === 0) {
-          console.error('No rows updated for session_id:', session.id);
-        }
       }
     } catch (err) {
       console.error('Webhook database error:', err);
@@ -68,7 +66,7 @@ async function initializeDatabase() {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    connectTimeout: 30000,
+    connectTimeout: 60000, // Increased to 60 seconds
   };
 
   if (process.env.MYSQL_URL) {
@@ -84,16 +82,16 @@ async function initializeDatabase() {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
-      connectTimeout: 30000,
+      connectTimeout: 60000,
     };
   }
 
   let pool;
-  let retries = 5;
+  let retries = 10; // Increased to 10 retries
   while (retries > 0) {
     try {
       pool = await mysql.createPool(connectionConfig);
-      console.log('Connected to MySQL database with pool.');
+      console.log('Attempting MySQL connection with config:', connectionConfig);
       const connection = await pool.getConnection();
       try {
         await connection.query(`
@@ -109,18 +107,19 @@ async function initializeDatabase() {
             payment_status VARCHAR(20)
           )
         `);
+        console.log('Connected to MySQL database with pool.');
       } finally {
         connection.release();
       }
       break;
     } catch (err) {
-      console.error(`Startup: Failed to connect to MySQL database (attempt ${6 - retries}):`, err);
+      console.error(`Startup: Failed to connect to MySQL database (attempt ${11 - retries}):`, err.message, err.stack);
       retries--;
       if (retries === 0) {
         console.error('Startup: All connection attempts failed. Exiting.');
         process.exit(1);
       }
-      await new Promise(resolve => setTimeout(resolve, 10000));
+      await new Promise(resolve => setTimeout(resolve, 15000)); // Increased to 15 seconds
     }
   }
   return pool;
