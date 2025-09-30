@@ -1,0 +1,42 @@
+databases:
+  - name: mysql
+    databaseName: railway
+    user: root
+    password: qMDhdbiwMxqvqkgycKcpvVAeXxpRzfDR
+    host: centerbeam.proxy.rlwy.net
+    port: 32327
+
+services:
+  - type: web
+    name: backend
+    env: node
+    buildCommand: cd backend && npm ci
+    startCommand: cd backend && node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20.19.5
+      - key: MYSQL_HOST
+        value: centerbeam.proxy.rlwy.net
+      - key: MYSQL_USER
+        value: root
+      - key: MYSQL_PASSWORD
+        value: qMDhdbiwMxqvqkgycKcpvVAeXxpRzfDR
+      - key: MYSQL_DATABASE
+        value: railway
+      - key: MYSQL_PORT
+        value: 32327
+      - key: STRIPE_WEBHOOK_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+
+  - type: web
+    name: frontend
+    env: node
+    buildCommand: cd frontend && npm ci && npm run build
+    startCommand: cd frontend && node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20.19.5
+      - key: NODE_ENV
+        value: production
