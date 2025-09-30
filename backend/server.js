@@ -195,8 +195,8 @@ app.post('/api/payments', async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: 'https://cathy-port13.onrender.com/success',
-      cancel_url: 'https://cathy-port13.onrender.com/consultation',
+      success_url: 'https://frontend-df5v.onrender.com/success',
+      cancel_url: 'https://frontend-df5v.onrender.com/consultation',
       customer_email: email,
       metadata: { name, email, consultation_id: '' },
     });
