@@ -16,6 +16,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Use cors for all routes
 app.use(cors());
 
+
 // Webhook route
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
@@ -35,7 +36,7 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
     try {
       connection = await pool.getConnection();
       const [rows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
-      console.log('Matching consultations:', rows);
+      console.log('Matching consultations before update:', rows);
       if (rows.length === 0) {
         const [insertResult] = await connection.execute(
           'INSERT INTO consultations (name, email, session_id, created_at) VALUES (?, ?, ?, NOW())',
@@ -48,6 +49,8 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
           [session.payment_intent, 'paid', session.id]
         );
         console.log('Webhook database update result:', updateResult);
+        const [updatedRows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
+        console.log('Updated consultation state:', updatedRows);
       }
     } catch (err) {
       console.error('Webhook database error:', err);
@@ -57,7 +60,6 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
   }
   res.json({ received: true });
 });
-
 // JSON parsing for other routes
 app.use(express.json());
 
