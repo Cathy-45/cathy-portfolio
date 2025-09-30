@@ -1,11 +1,3 @@
-databases:
-  - name: mysql
-    databaseName: railway
-    user: root
-    password: qMDhdbiwMxqvqkgycKcpvVAeXxpRzfDR
-    host: centerbeam.proxy.rlwy.net
-    port: 32327
-
 services:
   - type: web
     name: backend
@@ -24,7 +16,7 @@ services:
       - key: MYSQL_DATABASE
         value: railway
       - key: MYSQL_PORT
-        value: 32327
+        value: 3306
       - key: STRIPE_WEBHOOK_SECRET
         generateValue: true
       - key: NODE_ENV
