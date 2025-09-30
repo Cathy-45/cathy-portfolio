@@ -62,7 +62,6 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
 });
 // JSON parsing for other routes
 app.use(express.json());
-
 async function initializeDatabase() {
   console.log('Initializing database with environment:', process.env);
   let connectionConfig = {
@@ -136,12 +135,13 @@ async function initializeDatabase() {
     }
   }
   if (!pool) {
-    console.error('Pool initialization failed after all retries.');
+    console.error('Pool initialization failed after all retries. Check environment and network.');
     process.exit(1);
+  } else {
+    console.log('Pool initialized successfully, proceeding with startup.');
   }
   return pool;
 }
-
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
