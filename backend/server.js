@@ -67,28 +67,29 @@ async function initializeDatabase() {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    connectTimeout: 60000,
+    connectTimeout: 120000, // Increased to 120 seconds
   };
 
   if (process.env.MYSQL_URL) {
+    console.log('Using MYSQL_URL:', process.env.MYSQL_URL);
     const parsedUrl = url.parse(process.env.MYSQL_URL);
     const [user, password] = parsedUrl.auth ? parsedUrl.auth.split(':') : ['', ''];
     connectionConfig = {
-      host: parsedUrl.hostname,
+      host: parsedUrl.hostname || 'centerbeam.proxy.rlwy.net',
       user: user || 'root',
       password: password || 'qMDhdbiwMxqvqkgycKcpvVAeXxpRzfDR',
-      database: parsedUrl.pathname ? parsedUrl.pathname.split('/')[1] : 'railway',
-      port: parsedUrl.port || 32327,
+      database: parsedUrl.pathname ? parsedUrl.pathname.split('/')[1] || 'railway' : 'railway',
+      port: parsedUrl.port ? parseInt(parsedUrl.port) : 32327,
       ssl: parsedUrl.hostname?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
-      connectTimeout: 60000,
+      connectTimeout: 120000,
     };
   }
 
   let pool;
-  let retries = 10;
+  let retries = 15; // Increased to 15 retries
   while (retries > 0) {
     try {
       pool = await mysql.createPool(connectionConfig);
@@ -114,13 +115,13 @@ async function initializeDatabase() {
       }
       break;
     } catch (err) {
-      console.error(`Startup: Failed to connect to MySQL database (attempt ${11 - retries}):`, err.message, err.stack);
+      console.error(`Startup: Failed to connect to MySQL database (attempt ${16 - retries}):`, err.message, err.stack);
       retries--;
       if (retries === 0) {
         console.error('Startup: All connection attempts failed. Exiting.');
         process.exit(1);
       }
-      await new Promise(resolve => setTimeout(resolve, 15000));
+      await new Promise(resolve => setTimeout(resolve, 20000)); // Increased to 20 seconds
     }
   }
   return pool;
