@@ -16,7 +16,7 @@ services:
       - key: MYSQL_DATABASE
         value: railway
       - key: MYSQL_PORT
-        value: 3306
+        value: 32327
       - key: STRIPE_WEBHOOK_SECRET
         generateValue: true
       - key: NODE_ENV
@@ -25,7 +25,7 @@ services:
   - type: web
     name: frontend
     env: node
-    buildCommand: cd frontend && npm ci && npm run build
+    buildCommand: cd frontend && npm ci --include=dev && npm run build
     startCommand: cd frontend && node server.js
     envVars:
       - key: NODE_VERSION
