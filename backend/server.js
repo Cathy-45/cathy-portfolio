@@ -15,28 +15,23 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
   const sig = req.headers['stripe-signature'];
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
-
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
-
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     console.log('Webhook received: checkout.session.completed', { sessionId: session.id, fullSession: session });
-
     (async () => {
       let connection;
       try {
-        connection = await initializeDatabase();
+        connection = await initializeDatabase().getConnection();
         const [rows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
         console.log('Matching consultations:', rows);
-
         if (rows.length === 0) {
           console.error('No consultation found for session_id:', session.id);
-          // Fix: Include required fields with defaults
           const [insertResult] = await connection.execute(
             'INSERT INTO consultations (name, email, session_id, created_at) VALUES (?, ?, ?, NOW())',
             ['Test User', session.customer_email || 'test@stripe.com', session.id]
@@ -53,7 +48,7 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
       } catch (err) {
         console.error('Webhook database error:', err);
       } finally {
-        if (connection) await connection.end();
+        if (connection) connection.release();
       }
     })();
   }
@@ -65,13 +60,16 @@ app.use(express.json());
 
 async function initializeDatabase() {
   let connectionConfig = {
-    host: process.env.MYSQL_HOST || 'localhost',
+    host: process.env.MYSQL_HOST || 'centerbeam.proxy.rlwy.net',
     user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || '',
+    password: process.env.MYSQL_PASSWORD || 'qMDhdbiwMxqvqkgycKcpvVAeXxpRzfDR',
     database: process.env.MYSQL_DATABASE || 'railway',
-    port: process.env.MYSQL_PORT || 3306,
+    port: process.env.MYSQL_PORT || 32327,
     ssl: process.env.MYSQL_HOST?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
-    connectTimeout: 10000, // Valid for createConnection
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+    connectTimeout: 30000, // 30 seconds
   };
 
   if (process.env.MYSQL_URL) {
@@ -80,54 +78,54 @@ async function initializeDatabase() {
     connectionConfig = {
       host: parsedUrl.hostname,
       user: user || 'root',
-      password: password || '',
+      password: password || 'qMDhdbiwMxqvqkgycKcpvVAeXxpRzfDR',
       database: parsedUrl.pathname ? parsedUrl.pathname.split('/')[1] : 'railway',
-      port: parsedUrl.port || 3306,
+      port: parsedUrl.port || 32327,
       ssl: parsedUrl.hostname?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
-      connectTimeout: 10000, // Valid for createConnection
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      connectTimeout: 30000,
     };
   }
 
-  const connection = await mysql.createConnection(connectionConfig);
-  console.log('Connected to MySQL database.');
-  return connection;
-}
-
-// Test database connection at startup
-(async () => {
-  let connection;
-  let retries =3;
-  while(retries > 0){
-  try {
-    connection = await initializeDatabase();
-    console.log('Startup: Successfully connected to MySQL database.');
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS consultations (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
-        phone VARCHAR(20) NOT NULL,
-        message TEXT,
-        created_at DATETIME NOT NULL,
-        payment_intent_id VARCHAR(255),
-        session_id VARCHAR(255) UNIQUE,
-        payment_status VARCHAR(20)
-      )
-    `);
-break;
-  } catch (err) {
-console.error(`Startup: Failed to connect to MySQL database (attempt ${4 - retries}):`, err);
+  let pool;
+  let retries = 5;
+  while (retries > 0) {
+    try {
+      pool = await mysql.createPool(connectionConfig);
+      console.log('Connected to MySQL database with pool.');
+      const connection = await pool.getConnection();
+      try {
+        await connection.query(`
+          CREATE TABLE IF NOT EXISTS consultations (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255) NOT NULL,
+            phone VARCHAR(20) NOT NULL,
+            message TEXT,
+            created_at DATETIME NOT NULL,
+            payment_intent_id VARCHAR(255),
+            session_id VARCHAR(255) UNIQUE,
+            payment_status VARCHAR(20)
+          )
+        `);
+      } finally {
+        connection.release();
+      }
+      break;
+    } catch (err) {
+      console.error(`Startup: Failed to connect to MySQL database (attempt ${6 - retries}):`, err);
       retries--;
       if (retries === 0) {
         console.error('Startup: All connection attempts failed. Exiting.');
         process.exit(1);
       }
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds before retry
-    } finally {
-      if (connection) await connection.end();
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
     }
   }
-})();
+  return pool;
+}
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -146,7 +144,8 @@ app.post('/api/consultations', async (req, res) => {
   }
   let connection;
   try {
-    connection = await initializeDatabase();
+    const pool = await initializeDatabase();
+    connection = await pool.getConnection();
     const query = 'INSERT INTO consultations (name, email, phone, message, created_at) VALUES (?, ?, ?, ?, NOW())';
     const [result] = await connection.execute(query, [name, email, phone, message]);
     console.log('Insert result:', result);
@@ -168,7 +167,7 @@ app.post('/api/consultations', async (req, res) => {
     console.error('Database or email error:', err);
     res.status(500).json({ error: 'Server error' });
   } finally {
-    if (connection) await connection.end();
+    if (connection) connection.release();
   }
 });
 
@@ -181,7 +180,8 @@ app.post('/api/payments', async (req, res) => {
   }
   let connection;
   try {
-    connection = await initializeDatabase();
+    const pool = await initializeDatabase();
+    connection = await pool.getConnection();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -216,12 +216,12 @@ app.post('/api/payments', async (req, res) => {
       console.error('No rows updated for id:', id);
       return res.status(500).json({ error: 'Failed to update consultation' });
     }
-    res.json({ id: session.id, url: session.url});
+    res.json({ id: session.id, url: session.url });
   } catch (error) {
     console.error('Error in /api/payments:', error);
     res.status(500).json({ error: 'Payment initiation failed', details: error.message });
   } finally {
-    if (connection) await connection.end();
+    if (connection) connection.release();
   }
 });
 
