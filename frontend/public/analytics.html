@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Analytics</title>
+  <style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>Visitor Analytics</h1>
+  <p>Unique Visitors: <span id="uniqueCount">0</span></p>
+  <table id="visitsTable">
+    <tr><th>IP Address</th><th>Visit Count</th><th>First Visit</th><th>Last Visit</th></tr>
+  </table>
+  <script>
+    fetch('https://backend-1g7w.onrender.com/api/analytics')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('uniqueCount').textContent = data.unique_visitors;
+        const table = document.getElementById('visitsTable');
+        data.visits.forEach(visit => {
+          const row = table.insertRow();
+          row.insertCell().textContent = visit.ip;
+          row.insertCell().textContent = visit.visit_count;
+          row.insertCell().textContent = new Date(visit.first_visit).toLocaleString();
+          row.insertCell().textContent = new Date(visit.last_visit).toLocaleString();
+        });
+      })
+      .catch(error => console.error('Error fetching analytics:', error));
+  </script>
+</body>
+</html>
