@@ -141,3 +141,11 @@ body {
     display: none;
   }
 }
+nav a {
+  margin: 0 10px;
+  color: #3b5998; /* Facebook blue */
+  text-decoration: none;
+}
+nav a:hover {
+  text-decoration: underline;
+}
