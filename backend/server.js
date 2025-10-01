@@ -129,12 +129,12 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
-
 // Middleware to track visits and revisits
 app.use(express.json());
 app.use(async (req, res, next) => {
   const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-  const visitTime = new Date().toISOString();
+  const visitTime = new Date().toISOString(); // e.g., "2025-10-01T23:10:53.998Z"
+  const mysqlVisitTime = new Date(visitTime).toISOString().slice(0, 19).replace('T', ' '); // e.g., "2025-10-01 23:10:53"
   console.log(`Visit detected from IP: ${ip} at ${visitTime}`);
 
   const pool = await initializeDatabase();
@@ -143,11 +143,11 @@ app.use(async (req, res, next) => {
     connection = await pool.getConnection();
     const [existingVisits] = await connection.execute('SELECT visit_time FROM visits WHERE ip = ?', [ip]);
     const isRevisit = existingVisits.length > 0;
-    await connection.execute('INSERT INTO visits (ip, visit_time) VALUES (?, ?) ON DUPLICATE KEY UPDATE visit_time = ?', [ip, visitTime, visitTime]);
+    await connection.execute('INSERT INTO visits (ip, visit_time) VALUES (?, ?) ON DUPLICATE KEY UPDATE visit_time = ?', [ip, mysqlVisitTime, mysqlVisitTime]);
 
     // Send email alert for revisits or new visits
     const subject = isRevisit ? 'Revisit Detected' : 'New Visitor';
-    const text = `${subject}\nIP: ${ip}\nTime: ${visitTime}\nTotal visits for this IP: ${existingVisits.length + 1}`;
+    const text = `${subject}\nIP: ${ip}\nTime: ${mysqlVisitTime}\nTotal visits for this IP: ${existingVisits.length + 1}`;
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: process.env.EMAIL_USER,
@@ -161,7 +161,6 @@ app.use(async (req, res, next) => {
   }
   next();
 });
-
 // Analytics endpoint
 app.get('/api/analytics', async (req, res) => {
   const pool = await initializeDatabase();
