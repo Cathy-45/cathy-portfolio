@@ -1,22 +1,64 @@
 require('dotenv').config();
 const express = require('express');
-const mysql = require('mysql2/promise');
-const nodemailer = require('nodemailer');
+const app = express();
 const cors = require('cors');
+const nodemailer = require('nodemailer');
+const mysql = require('mysql2/promise');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const url = require('url');
-const app = express();
 
 // Global uncaught exception handler
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// Use cors for all routes
-app.use(cors());
+// Webhook route (must come before express.json())
+app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    console.log('Webhook received: checkout.session.completed', { sessionId: session.id });
+    const pool = await initializeDatabase();
+    let connection;
+    try {
+      connection = await pool.getConnection();
+      const [rows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
+      console.log('Matching consultations before update:', rows);
+      if (rows.length === 0) {
+        const [insertResult] = await connection.execute(
+          'INSERT INTO consultations (name, email, session_id, created_at) VALUES (?, ?, ?, NOW())',
+          ['Test User', session.customer_email || 'test@stripe.com', session.id]
+        );
+        console.log('Created fallback consultation:', insertResult);
+      } else {
+        const [updateResult] = await connection.execute(
+          'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?',
+          [session.payment_intent, 'paid', session.id]
+        );
+        console.log('Webhook database update result:', updateResult);
+        const [updatedRows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
+        console.log('Updated consultation state:', updatedRows);
+      }
+    } catch (err) {
+      console.error('Webhook database error:', err);
+    } finally {
+      if (connection) connection.release();
+    }
+  }
+  res.json({ received: true });
+});
 
-// Middleware to track visits and revisits
-let pool;
+// Use express.json() after webhook to parse other routes
+app.use(express.json());
+
 async function initializeDatabase() {
   console.log('Initializing database with environment at:', new Date().toISOString());
   let connectionConfig = {
@@ -129,8 +171,8 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+
 // Middleware to track visits and revisits
-app.use(express.json());
 app.use(async (req, res, next) => {
   const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
   const visitTime = new Date().toISOString(); // e.g., "2025-10-01T23:10:53.998Z"
@@ -161,6 +203,7 @@ app.use(async (req, res, next) => {
   }
   next();
 });
+
 // Analytics endpoint
 app.get('/api/analytics', async (req, res) => {
   const pool = await initializeDatabase();
@@ -179,50 +222,6 @@ app.get('/api/analytics', async (req, res) => {
   } finally {
     if (connection) connection.release();
   }
-});
-
-// Webhook route
-app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-  } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    console.log('Webhook received: checkout.session.completed', { sessionId: session.id });
-    const pool = await initializeDatabase();
-    let connection;
-    try {
-      connection = await pool.getConnection();
-      const [rows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
-      console.log('Matching consultations before update:', rows);
-      if (rows.length === 0) {
-        const [insertResult] = await connection.execute(
-          'INSERT INTO consultations (name, email, session_id, created_at) VALUES (?, ?, ?, NOW())',
-          ['Test User', session.customer_email || 'test@stripe.com', session.id]
-        );
-        console.log('Created fallback consultation:', insertResult);
-      } else {
-        const [updateResult] = await connection.execute(
-          'UPDATE consultations SET payment_intent_id = ?, payment_status = ? WHERE session_id = ?',
-          [session.payment_intent, 'paid', session.id]
-        );
-        console.log('Webhook database update result:', updateResult);
-        const [updatedRows] = await connection.execute('SELECT * FROM consultations WHERE session_id = ?', [session.id]);
-        console.log('Updated consultation state:', updatedRows);
-      }
-    } catch (err) {
-      console.error('Webhook database error:', err);
-    } finally {
-      if (connection) connection.release();
-    }
-  }
-  res.json({ received: true });
 });
 
 app.post('/api/consultations', async (req, res) => {
