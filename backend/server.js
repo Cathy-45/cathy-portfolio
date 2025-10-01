@@ -204,7 +204,7 @@ app.post('/api/consultations', async (req, res) => {
   }
 })
 app.post('/api/payments', async (req, res) => {
-  const { name, email, amount } = req.body; // 'amount' is the US amount; we'll adjust based on country
+  const { name, email, amount } = req.body;
   console.log('Received payment request:', { name, email, amount });
 
   if (!name || !email || !amount) {
@@ -217,13 +217,10 @@ app.post('/api/payments', async (req, res) => {
     const pool = await initializeDatabase();
     connection = await pool.getConnection();
 
-    // Get client IP
     let clientIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    if (clientIP.includes(',')) clientIP = clientIP.split(',')[0].trim(); // Handle proxies
-
+    if (clientIP.includes(',')) clientIP = clientIP.split(',')[0].trim();
     console.log('Client IP:', clientIP);
 
-    // Fetch country code
     let countryCode = 'US'; // Default to US
     try {
       const axios = require('axios');
@@ -231,19 +228,18 @@ app.post('/api/payments', async (req, res) => {
       countryCode = response.data.toUpperCase();
       console.log('Detected country code:', countryCode);
     } catch (geoErr) {
-      console.warn('Geolocation failed:', geoErr.message, '- defaulting to US pricing');
+      console.warn('Geolocation failed:', geoErr.message);
     }
 
-    // Pricing logic
-    let finalAmount = parseFloat(amount); // Default US amount
+    let finalAmount = parseFloat(amount); // Use the input amount as base
     let currency = 'usd';
     let equivalentAmount = null;
-    if (countryCode === 'ZM') {
+    if (countryCode === 'ZM' && parseFloat(amount) !== finalAmount) {
       finalAmount = 35.00; // Zambian pricing
-      equivalentAmount = 965; // ZMW equivalent (1 USD ≈ 27.5 ZMW as of Sep 30, 2025)
-      console.log('Applying Zambian pricing: $35 USD (965 ZMW equivalent)');
+      equivalentAmount = 965; // ZMW equivalent
+      console.log('Adjusting to Zambian pricing: $35 USD (965 ZMW equivalent)');
     } else {
-      console.log('Applying US pricing: $100 USD');
+      console.log('Using requested amount:', finalAmount, 'USD');
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -275,7 +271,6 @@ app.post('/api/payments', async (req, res) => {
 
     console.log('Stripe session created:', { sessionId: session.id, paymentIntent: session.payment_intent });
 
-    // Select recent consultation
     const selectQuery = 'SELECT id FROM consultations WHERE email = ? ORDER BY created_at DESC LIMIT 1';
     const [results] = await connection.execute(selectQuery, [email]);
     if (!results || results.length === 0) {
@@ -285,7 +280,6 @@ app.post('/api/payments', async (req, res) => {
     const { id } = results[0];
     console.log('Selected consultation:', { id, email });
 
-    // Update session_id
     const updateQuery = 'UPDATE consultations SET session_id = ? WHERE id = ?';
     const [updateResult] = await connection.execute(updateQuery, [session.id, id]);
     console.log('Database update result:', updateResult);
