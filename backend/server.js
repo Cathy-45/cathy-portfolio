@@ -74,7 +74,7 @@ async function initializeDatabase() {
     port: process.env.MYSQL_PORT ? parseInt(process.env.MYSQL_PORT) : 32327,
     ssl: process.env.MYSQL_HOST?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 5, // Reduced from 10 to avoid exceeding database limit
     queueLimit: 0,
     connectTimeout: 180000,
   };
@@ -91,7 +91,7 @@ async function initializeDatabase() {
       port: parsedUrl.port ? parseInt(parsedUrl.port) : 32327,
       ssl: parsedUrl.hostname?.includes('railway.app') ? { rejectUnauthorized: false } : undefined,
       waitForConnections: true,
-      connectionLimit: 10,
+      connectionLimit: 5, // Reduced from 10
       queueLimit: 0,
       connectTimeout: 180000,
     };
@@ -127,7 +127,6 @@ async function initializeDatabase() {
             UNIQUE KEY unique_ip_visit (ip, visit_time)
           )
         `);
-        // Check and add name column if it doesn't exist
         const [columns] = await connection.execute('SHOW COLUMNS FROM visits LIKE \'name\'');
         if (columns.length === 0) {
           await connection.query('ALTER TABLE visits ADD COLUMN name VARCHAR(255)');
