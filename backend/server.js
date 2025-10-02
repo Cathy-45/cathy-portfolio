@@ -58,6 +58,11 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
 
 // Use express.json() after webhook to parse other routes
 app.use(express.json());
+app.use(cors({
+  origin: 'https://frontend-df5v.onrender.com', // Match your frontend URL
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type']
+}));
 
 async function initializeDatabase() {
   console.log('Initializing database with environment at:', new Date().toISOString());
@@ -117,6 +122,7 @@ async function initializeDatabase() {
           CREATE TABLE IF NOT EXISTS visits (
             id INT AUTO_INCREMENT PRIMARY KEY,
             ip VARCHAR(45) NOT NULL,
+            name VARCHAR(255),
             visit_time DATETIME NOT NULL,
             UNIQUE KEY unique_ip_visit (ip, visit_time)
           )
@@ -172,24 +178,27 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Middleware to track visits and revisits
+// Middleware to track visits and revisits with names
 app.use(async (req, res, next) => {
   const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-  const visitTime = new Date().toISOString(); // e.g., "2025-10-01T23:10:53.998Z"
-  const mysqlVisitTime = new Date(visitTime).toISOString().slice(0, 19).replace('T', ' '); // e.g., "2025-10-01 23:10:53"
+  const visitTime = new Date().toISOString();
+  const mysqlVisitTime = new Date(visitTime).toISOString().slice(0, 19).replace('T', ' ');
   console.log(`Visit detected from IP: ${ip} at ${visitTime}`);
 
   const pool = await initializeDatabase();
   let connection;
   try {
     connection = await pool.getConnection();
-    const [existingVisits] = await connection.execute('SELECT visit_time FROM visits WHERE ip = ?', [ip]);
+    let name = 'Anonymous';
+    if (req.body && req.body.name) {
+      name = req.body.name; // Capture name from consultation/payment requests
+    }
+    const [existingVisits] = await connection.execute('SELECT visit_time, name FROM visits WHERE ip = ?', [ip]);
     const isRevisit = existingVisits.length > 0;
-    await connection.execute('INSERT INTO visits (ip, visit_time) VALUES (?, ?) ON DUPLICATE KEY UPDATE visit_time = ?', [ip, mysqlVisitTime, mysqlVisitTime]);
+    await connection.execute('INSERT INTO visits (ip, name, visit_time) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE visit_time = ?, name = ?', [ip, name, mysqlVisitTime, mysqlVisitTime, name]);
 
-    // Send email alert for revisits or new visits
     const subject = isRevisit ? 'Revisit Detected' : 'New Visitor';
-    const text = `${subject}\nIP: ${ip}\nTime: ${mysqlVisitTime}\nTotal visits for this IP: ${existingVisits.length + 1}`;
+    const text = `${subject}\nIP: ${ip}\nName: ${name}\nTime: ${mysqlVisitTime}\nTotal visits for this IP: ${existingVisits.length + 1}`;
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: process.env.EMAIL_USER,
@@ -204,21 +213,29 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Analytics endpoint
+// Analytics endpoint with password protection
 app.get('/api/analytics', async (req, res) => {
+  const password = req.query.password; // Expect ?password=yourpassword
+  if (!password || password !== process.env.ANALYTICS_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   const pool = await initializeDatabase();
   let connection;
   try {
     connection = await pool.getConnection();
     const [rows] = await connection.execute(`
-      SELECT ip, COUNT(*) as visit_count, MIN(visit_time) as first_visit, MAX(visit_time) as last_visit
+      SELECT ip, name, COUNT(*) as visit_count, MIN(visit_time) as first_visit, MAX(visit_time) as last_visit
       FROM visits
-      GROUP BY ip
+      GROUP BY ip, name
     `);
+    console.log('Analytics data:', rows); // Debug log
+    if (!rows || rows.length === 0) {
+      return res.json({ unique_visitors: 0, visits: [] });
+    }
     res.json({ unique_visitors: rows.length, visits: rows });
   } catch (err) {
     console.error('Analytics error:', err);
-    res.status(500).json({ error: 'Failed to fetch analytics' });
+    res.status(500).json({ error: 'Failed to fetch analytics', details: err.message });
   } finally {
     if (connection) connection.release();
   }
