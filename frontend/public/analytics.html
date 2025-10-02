@@ -7,6 +7,28 @@
     table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     th { background-color: #f2f2f2; }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      z-index: 1000;
+    }
+    .modal-content {
+      background-color: white;
+      margin: 15% auto;
+      padding: 20px;
+      width: 300px;
+      text-align: center;
+      border-radius: 5px;
+    }
+    .close {
+      float: right;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -15,19 +37,41 @@
   <table id="visitsTable">
     <tr><th>IP Address</th><th>Name</th><th>Visit Count</th><th>First Visit</th><th>Last Visit</th></tr>
   </table>
+
+  <div id="passwordModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2>Enter Password</h2>
+      <input type="password" id="passwordInput" placeholder="Password">
+      <button onclick="submitPassword()">Submit</button>
+    </div>
+  </div>
+
   <script>
-    // Prompt for password
-    let password = prompt('Enter analytics password:');
-    if (!password) {
-      alert('Password is required to view analytics.');
-    } else {
+    // Show modal on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('passwordModal').style.display = 'block';
+    });
+
+    // Close modal
+    document.querySelector('.close').addEventListener('click', () => {
+      document.getElementById('passwordModal').style.display = 'none';
+    });
+
+    // Submit password
+    function submitPassword() {
+      const password = document.getElementById('passwordInput').value;
+      if (!password) {
+        alert('Password is required to view analytics.');
+        return;
+      }
       fetch(`https://backend-1g7w.onrender.com/api/analytics?password=${encodeURIComponent(password)}`)
         .then(response => {
           if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           return response.json();
         })
         .then(data => {
-          console.log('Fetched data:', data); // Debug log
+          console.log('Fetched data:', data);
           document.getElementById('uniqueCount').textContent = data.unique_visitors || 0;
           const table = document.getElementById('visitsTable');
           if (data.visits && data.visits.length > 0) {
@@ -42,12 +86,18 @@
           } else {
             console.log('No visit data available');
           }
+          document.getElementById('passwordModal').style.display = 'none';
         })
         .catch(error => {
           console.error('Error fetching analytics:', error);
           alert('Failed to load analytics. Check password or server status.');
         });
     }
+
+    // Allow Enter key to submit
+    document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') submitPassword();
+    });
   </script>
 </body>
 </html>
