@@ -4,9 +4,34 @@
   <meta charset="UTF-8">
   <title>Analytics</title>
   <style>
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    th { background-color: #f2f2f2; }
+    /* General page styling */
+    body {
+      font-family: 'Roboto', sans-serif; /* Professional font, add <link> for Google Fonts below if needed */
+      background-color: #f5f5f5; /* Light gray background, adjust to match your site */
+      margin: 0;
+      padding: 20px;
+      color: #333; /* Dark text for readability */
+    }
+
+    /* Table styling */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+      background-color: #fff; /* White table background */
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow */
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #4a90e2; /* Blue header, adjust to match your site */
+      color: white;
+    }
+
+    /* Modal styling */
     .modal {
       display: none;
       position: fixed;
@@ -18,18 +43,46 @@
       z-index: 1000;
     }
     .modal-content {
-      background-color: white;
+      background-color: #fff; /* White modal background */
       margin: 15% auto;
       padding: 20px;
       width: 300px;
       text-align: center;
-      border-radius: 5px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
     .close {
       float: right;
       cursor: pointer;
+      font-size: 24px;
+      color: #666;
+    }
+    .close:hover {
+      color: #000;
+    }
+    #passwordInput {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #4a90e2; /* Blue button, match header */
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #357ab7; /* Darker blue on hover */
     }
   </style>
+  <!-- Optional: Add Google Fonts for Roboto -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <h1>Visitor Analytics</h1>
