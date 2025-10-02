@@ -127,11 +127,12 @@ async function initializeDatabase() {
             UNIQUE KEY unique_ip_visit (ip, visit_time)
           )
         `);
-        // Add name column if it doesn't exist
-        await connection.query(`
-          ALTER TABLE visits
-          ADD COLUMN IF NOT EXISTS name VARCHAR(255) AFTER ip
-        `);
+        // Check and add name column if it doesn't exist
+        const [columns] = await connection.execute('SHOW COLUMNS FROM visits LIKE \'name\'');
+        if (columns.length === 0) {
+          await connection.query('ALTER TABLE visits ADD COLUMN name VARCHAR(255)');
+          console.log('Added name column to visits table');
+        }
         console.log('Connected to MySQL database with pool at:', new Date().toISOString());
       } catch (queryErr) {
         console.error('Query execution error at:', new Date().toISOString(), queryErr.message, queryErr.stack);
