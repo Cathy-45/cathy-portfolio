@@ -17,17 +17,25 @@
   </table>
   <script>
     fetch('https://backend-1g7w.onrender.com/api/analytics')
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      })
       .then(data => {
-        document.getElementById('uniqueCount').textContent = data.unique_visitors;
+        console.log('Fetched data:', data); // Debug log
+        document.getElementById('uniqueCount').textContent = data.unique_visitors || 0;
         const table = document.getElementById('visitsTable');
-        data.visits.forEach(visit => {
-          const row = table.insertRow();
-          row.insertCell().textContent = visit.ip;
-          row.insertCell().textContent = visit.visit_count;
-          row.insertCell().textContent = new Date(visit.first_visit).toLocaleString();
-          row.insertCell().textContent = new Date(visit.last_visit).toLocaleString();
-        });
+        if (data.visits && data.visits.length > 0) {
+          data.visits.forEach(visit => {
+            const row = table.insertRow();
+            row.insertCell().textContent = visit.ip;
+            row.insertCell().textContent = visit.visit_count;
+            row.insertCell().textContent = new Date(visit.first_visit).toLocaleString();
+            row.insertCell().textContent = new Date(visit.last_visit).toLocaleString();
+          });
+        } else {
+          console.log('No visit data available');
+        }
       })
       .catch(error => console.error('Error fetching analytics:', error));
   </script>
