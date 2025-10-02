@@ -5,10 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Catherine Sichone Portfolio</title>
-    <!-- Add Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
-      /* Fixed navigation at top right */
       nav {
         position: fixed;
         top: 10px;
@@ -19,14 +17,13 @@
         margin-left: 15px;
         color: #333;
         text-decoration: none;
-        font-size: 24px; /* Icon size */
+        font-size: 24px;
       }
       nav a:hover {
-        color: #007bff; /* Hover effect */
+        color: #cbb293;
       }
-      /* Ensure content isn't hidden behind nav */
       #root {
-        padding-top: 50px; /* Adjust based on nav height */
+        padding-top: 50px;
       }
     </style>
   </head>
@@ -34,8 +31,10 @@
     <nav>
       <a href="/analytics.html" title="View Analytics"><i class="fas fa-chart-line"></i></a>
       <a href="https://www.facebook.com/YourPage" target="_blank" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+      <a href="https://www.instagram.com/YourHandle" target="_blank" title="Instagram"><i class="fab fa-instagram"></i></a>
+      <a href="https://www.linkedin.com/in/YourProfile" target="_blank" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
     </nav>
-    <div id="root">Loading...</div> <!-- Fallback message -->
+    <div id="root">Loading...</div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
