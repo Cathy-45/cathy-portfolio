@@ -127,6 +127,11 @@ async function initializeDatabase() {
             UNIQUE KEY unique_ip_visit (ip, visit_time)
           )
         `);
+        // Add name column if it doesn't exist
+        await connection.query(`
+          ALTER TABLE visits
+          ADD COLUMN IF NOT EXISTS name VARCHAR(255) AFTER ip
+        `);
         console.log('Connected to MySQL database with pool at:', new Date().toISOString());
       } catch (queryErr) {
         console.error('Query execution error at:', new Date().toISOString(), queryErr.message, queryErr.stack);
